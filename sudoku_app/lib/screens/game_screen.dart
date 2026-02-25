@@ -1,0 +1,341 @@
+import 'dart:async';
+import 'package:flutter/material.dart';
+import '../logic/sudoku_generator.dart';
+import '../widgets/sudoku_board.dart';
+import '../widgets/number_pad.dart';
+
+class GameScreen extends StatefulWidget {
+  final Difficulty difficulty;
+
+  const GameScreen({super.key, required this.difficulty});
+
+  @override
+  State<GameScreen> createState() => _GameScreenState();
+}
+
+class _GameScreenState extends State<GameScreen> {
+  late List<List<int>> _solution;
+  late List<List<bool>> _isGiven;
+  late List<List<int>> _board;
+  late List<List<bool>> _isError;
+
+  int _selectedRow = -1;
+  int _selectedCol = -1;
+  bool _isPaused = false;
+  bool _isCompleted = false;
+  int _elapsedSeconds = 0;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _newGame();
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  void _newGame() {
+    final result = SudokuGenerator.generate(widget.difficulty);
+    _solution = result.solution;
+    _isGiven = List.generate(
+        9, (r) => List.generate(9, (c) => result.puzzle[r][c] != 0));
+    _board = result.puzzle.map((row) => List<int>.from(row)).toList();
+    _isError = List.generate(9, (_) => List.filled(9, false));
+    _selectedRow = -1;
+    _selectedCol = -1;
+    _isPaused = false;
+    _isCompleted = false;
+    _elapsedSeconds = 0;
+    _startTimer();
+  }
+
+  void _startTimer() {
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!_isPaused && !_isCompleted && mounted) {
+        setState(() => _elapsedSeconds++);
+      }
+    });
+  }
+
+  void _togglePause() {
+    setState(() => _isPaused = !_isPaused);
+  }
+
+  void _onCellTap(int row, int col) {
+    if (_isPaused || _isCompleted) return;
+    setState(() {
+      _selectedRow = row;
+      _selectedCol = col;
+    });
+  }
+
+  void _onNumberInput(int num) {
+    if (_isPaused || _isCompleted) return;
+    if (_selectedRow < 0 || _selectedCol < 0) return;
+    if (_isGiven[_selectedRow][_selectedCol]) return;
+    setState(() {
+      _board[_selectedRow][_selectedCol] = num;
+      _updateErrors();
+      if (_checkWin()) {
+        _isCompleted = true;
+        _timer?.cancel();
+        _showWinDialog();
+      }
+    });
+  }
+
+  void _onErase() {
+    if (_isPaused || _isCompleted) return;
+    if (_selectedRow < 0 || _selectedCol < 0) return;
+    if (_isGiven[_selectedRow][_selectedCol]) return;
+    setState(() {
+      _board[_selectedRow][_selectedCol] = 0;
+      _updateErrors();
+    });
+  }
+
+  void _updateErrors() {
+    for (int r = 0; r < 9; r++) {
+      for (int c = 0; c < 9; c++) {
+        if (!_isGiven[r][c] && _board[r][c] != 0) {
+          _isError[r][c] = _board[r][c] != _solution[r][c];
+        } else {
+          _isError[r][c] = false;
+        }
+      }
+    }
+  }
+
+  bool _checkWin() {
+    for (int r = 0; r < 9; r++) {
+      for (int c = 0; c < 9; c++) {
+        if (_board[r][c] != _solution[r][c]) return false;
+      }
+    }
+    return true;
+  }
+
+  String _formatTime(int seconds) {
+    final m = seconds ~/ 60;
+    final s = seconds % 60;
+    return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
+  }
+
+  void _showWinDialog() {
+    Future.delayed(const Duration(milliseconds: 400), () {
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text(
+            'Puzzle Solved!',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.emoji_events_rounded,
+                  color: Colors.amber, size: 64),
+              const SizedBox(height: 12),
+              Text(
+                'Time: ${_formatTime(_elapsedSeconds)}',
+                style: const TextStyle(fontSize: 18),
+              ),
+            ],
+          ),
+          actionsAlignment: MainAxisAlignment.spaceEvenly,
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                Navigator.pop(context);
+              },
+              child: const Text('Menu'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1A237E),
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () {
+                Navigator.pop(ctx);
+                setState(_newGame);
+              },
+              child: const Text('Play Again'),
+            ),
+          ],
+        ),
+      );
+    });
+  }
+
+  String _difficultyLabel() {
+    switch (widget.difficulty) {
+      case Difficulty.easy:
+        return 'Easy';
+      case Difficulty.medium:
+        return 'Medium';
+      case Difficulty.hard:
+        return 'Hard';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF5F5F5),
+      body: SafeArea(
+        child: Stack(
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _buildHeader(),
+                const SizedBox(height: 16),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: SudokuBoard(
+                    board: _board,
+                    isGiven: _isGiven,
+                    isError: _isError,
+                    selectedRow: _selectedRow,
+                    selectedCol: _selectedCol,
+                    isPaused: _isPaused,
+                    onCellTap: _onCellTap,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: NumberPad(
+                    onNumber: _onNumberInput,
+                    onErase: _onErase,
+                  ),
+                ),
+              ],
+            ),
+            if (_isPaused) _buildPauseOverlay(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 8, 4, 0),
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new),
+            onPressed: () {
+              _timer?.cancel();
+              Navigator.pop(context);
+            },
+          ),
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'SUDOKU',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 4,
+                    color: Color(0xFF1A237E),
+                  ),
+                ),
+                Text(
+                  _difficultyLabel(),
+                  style: const TextStyle(fontSize: 13, color: Colors.grey),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            _formatTime(_elapsedSeconds),
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF1A237E),
+              fontFamily: 'monospace',
+            ),
+          ),
+          IconButton(
+            icon: Icon(_isPaused ? Icons.play_arrow_rounded : Icons.pause_rounded),
+            onPressed: _togglePause,
+            color: const Color(0xFF1A237E),
+            iconSize: 28,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPauseOverlay() {
+    return Positioned.fill(
+      child: Container(
+        color: Colors.black54,
+        child: Center(
+          child: Card(
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24)),
+            elevation: 12,
+            child: Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 48, vertical: 40),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.pause_circle_filled_rounded,
+                      size: 64, color: Color(0xFF1A237E)),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Game Paused',
+                    style: TextStyle(
+                        fontSize: 24, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 28),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF1A237E),
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size(200, 52),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14)),
+                    ),
+                    icon: const Icon(Icons.play_arrow_rounded),
+                    label: const Text('Resume',
+                        style: TextStyle(fontSize: 17)),
+                    onPressed: _togglePause,
+                  ),
+                  const SizedBox(height: 12),
+                  TextButton(
+                    onPressed: () {
+                      _timer?.cancel();
+                      Navigator.pop(context);
+                    },
+                    child: const Text(
+                      'Quit to Menu',
+                      style: TextStyle(color: Colors.redAccent, fontSize: 15),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
