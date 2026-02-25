@@ -8,15 +8,8 @@ class DifficultyScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFF1A237E), Color(0xFF3949AB)],
-          ),
-        ),
-        child: SafeArea(
+      backgroundColor: Colors.white,
+      body: SafeArea(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -26,14 +19,14 @@ class DifficultyScreen extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 52,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: Color(0xFF1A237E),
                   letterSpacing: 10,
                 ),
               ),
               const SizedBox(height: 8),
               const Text(
                 'Select a difficulty to begin',
-                style: TextStyle(fontSize: 16, color: Colors.white60),
+                style: TextStyle(fontSize: 16, color: Colors.black54),
               ),
               const Spacer(flex: 2),
               _DifficultyButton(
@@ -59,7 +52,6 @@ class DifficultyScreen extends StatelessWidget {
               const Spacer(flex: 3),
             ],
           ),
-        ),
       ),
     );
   }
@@ -82,15 +74,15 @@ class _DifficultyButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 40),
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: color,
-          foregroundColor: Colors.white,
+      child: OutlinedButton(
+        style: OutlinedButton.styleFrom(
+          backgroundColor: Colors.white,
+          foregroundColor: color,
           minimumSize: const Size(double.infinity, 68),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          elevation: 6,
+          side: const BorderSide(color: Color(0xFF1A237E), width: 2),
         ),
         onPressed: () {
           Navigator.push(
@@ -105,15 +97,16 @@ class _DifficultyButton extends StatelessWidget {
           children: [
             Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 3,
+                color: color,
               ),
             ),
             Text(
               subtitle,
-              style: const TextStyle(fontSize: 13, color: Colors.white70),
+              style: TextStyle(fontSize: 13, color: color.withOpacity(0.7)),
             ),
           ],
         ),
