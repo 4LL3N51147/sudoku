@@ -124,6 +124,17 @@ class _GameScreenState extends State<GameScreen> {
     });
   }
 
+  void _undo() {
+    if (_isPaused || _isAnimating || _isCompleted || _undoStack.isEmpty) return;
+    setState(() {
+      final move = _undoStack.removeLast();
+      _board[move.row][move.col] = move.oldValue;
+      _selectedRow = move.row;
+      _selectedCol = move.col;
+      _updateErrors();
+    });
+  }
+
   void _updateErrors() {
     for (int r = 0; r < 9; r++) {
       for (int c = 0; c < 9; c++) {
@@ -264,12 +275,6 @@ class _GameScreenState extends State<GameScreen> {
 
     // Fill the number and clear highlights
     setState(() {
-      _undoStack.add((
-        row: result.row,
-        col: result.col,
-        oldValue: 0,
-        newValue: result.digit,
-      ));
       _board[result.row][result.col] = result.digit;
       _updateErrors();
       _strategyHighlight = null;
@@ -280,6 +285,13 @@ class _GameScreenState extends State<GameScreen> {
       if (_checkWin()) {
         _isCompleted = true;
         _timer?.cancel();
+      } else {
+        _undoStack.add((
+          row: result.row,
+          col: result.col,
+          oldValue: 0,
+          newValue: result.digit,
+        ));
       }
     });
 
