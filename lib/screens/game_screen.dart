@@ -5,6 +5,8 @@ import '../logic/strategy_solver.dart';
 import '../widgets/sudoku_board.dart';
 import '../widgets/number_pad.dart';
 
+typedef _Move = ({int row, int col, int oldValue, int newValue});
+
 class GameScreen extends StatefulWidget {
   final Difficulty difficulty;
 
@@ -29,6 +31,7 @@ class _GameScreenState extends State<GameScreen> {
   Timer? _timer;
   StrategyHighlight? _strategyHighlight;
   String? _hintMessage;
+  final List<_Move> _undoStack = [];
 
   @override
   void initState() {
@@ -56,6 +59,7 @@ class _GameScreenState extends State<GameScreen> {
     _isCompleted = false;
     _strategyHighlight = null;
     _hintMessage = null;
+    _undoStack.clear();
     _elapsedSeconds = 0;
     _startTimer();
   }
