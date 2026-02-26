@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../logic/sudoku_generator.dart';
+import '../logic/strategy_solver.dart';
 import '../widgets/sudoku_board.dart';
 import '../widgets/number_pad.dart';
 
@@ -25,6 +26,7 @@ class _GameScreenState extends State<GameScreen> {
   bool _isCompleted = false;
   int _elapsedSeconds = 0;
   Timer? _timer;
+  StrategyHighlight? _strategyHighlight;
 
   @override
   void initState() {
@@ -178,6 +180,106 @@ class _GameScreenState extends State<GameScreen> {
     });
   }
 
+  Future<void> _runHiddenSingleHint() async {
+    final result = findHiddenSingle(_board);
+    if (result == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No hidden singles on this board.')),
+      );
+      return;
+    }
+
+    final wasRunning = !_isPaused && !_isCompleted;
+    if (wasRunning) setState(() => _isPaused = true);
+
+    // Phase 1 — scan: highlight the unit
+    setState(() {
+      _strategyHighlight = StrategyHighlight(
+        phase: StrategyPhase.scan,
+        unitCells: result.unitCells,
+      );
+    });
+    await Future.delayed(const Duration(milliseconds: 800));
+    if (!mounted) return;
+
+    // Phase 2 — elimination: show what blocks other cells
+    setState(() {
+      _strategyHighlight = StrategyHighlight(
+        phase: StrategyPhase.elimination,
+        unitCells: result.unitCells,
+        eliminatorCells: result.eliminatorCells,
+      );
+    });
+    await Future.delayed(const Duration(milliseconds: 1200));
+    if (!mounted) return;
+
+    // Phase 3 — target: highlight the answer cell
+    setState(() {
+      _strategyHighlight = StrategyHighlight(
+        phase: StrategyPhase.target,
+        unitCells: result.unitCells,
+        eliminatorCells: result.eliminatorCells,
+        targetCell: (result.row, result.col),
+      );
+    });
+    await Future.delayed(const Duration(milliseconds: 800));
+    if (!mounted) return;
+
+    // Fill the number and clear highlights
+    setState(() {
+      _board[result.row][result.col] = result.digit;
+      _updateErrors();
+      _strategyHighlight = null;
+      _selectedRow = result.row;
+      _selectedCol = result.col;
+      if (wasRunning) _isPaused = false;
+      if (_checkWin()) {
+        _isCompleted = true;
+        _timer?.cancel();
+      }
+    });
+
+    if (_isCompleted) _showWinDialog();
+  }
+
+  void _showStrategyPicker() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Text(
+                'Choose a Strategy',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.lightbulb_outline,
+                  color: Color(0xFF1A237E)),
+              title: const Text('Hidden Single'),
+              subtitle: const Text(
+                'Find a digit that can only go in one cell within a row, column, or box',
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                _runHiddenSingleHint();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   String _difficultyLabel() {
     switch (widget.difficulty) {
       case Difficulty.easy:
@@ -211,6 +313,7 @@ class _GameScreenState extends State<GameScreen> {
                     selectedCol: _selectedCol,
                     isPaused: _isPaused,
                     onCellTap: _onCellTap,
+                    strategyHighlight: _strategyHighlight,
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -270,6 +373,14 @@ class _GameScreenState extends State<GameScreen> {
               color: Color(0xFF1A237E),
               fontFamily: 'monospace',
             ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.lightbulb_outline),
+            onPressed: (_isPaused || _isCompleted || _strategyHighlight != null)
+                ? null
+                : _showStrategyPicker,
+            color: const Color(0xFF1A237E),
+            iconSize: 26,
           ),
           IconButton(
             icon: Icon(_isPaused ? Icons.play_arrow_rounded : Icons.pause_rounded),
