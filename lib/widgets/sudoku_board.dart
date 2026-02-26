@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../logic/strategy_solver.dart';
 
 class SudokuBoard extends StatelessWidget {
   final List<List<int>> board;
@@ -8,6 +9,7 @@ class SudokuBoard extends StatelessWidget {
   final int selectedCol;
   final bool isPaused;
   final void Function(int row, int col) onCellTap;
+  final StrategyHighlight? strategyHighlight;
 
   const SudokuBoard({
     super.key,
@@ -18,6 +20,7 @@ class SudokuBoard extends StatelessWidget {
     required this.selectedCol,
     required this.isPaused,
     required this.onCellTap,
+    this.strategyHighlight,
   });
 
   bool _isHighlighted(int row, int col) {
@@ -115,7 +118,20 @@ class SudokuBoard extends StatelessWidget {
     final given = isGiven[row][col];
 
     Color bgColor;
-    if (selected) {
+    final sh = strategyHighlight;
+    if (sh != null && sh.phase != StrategyPhase.none) {
+      final cell = (row, col);
+      if (sh.phase == StrategyPhase.target && sh.targetCell == cell) {
+        bgColor = const Color(0xFFC8E6C9); // green-100 — place digit here
+      } else if (sh.phase == StrategyPhase.elimination &&
+          sh.eliminatorCells.contains(cell)) {
+        bgColor = const Color(0xFFFFE0B2); // amber-100 — blocks other cells
+      } else if (sh.unitCells.contains(cell)) {
+        bgColor = const Color(0xFFE3F2FD); // blue-50 — scanning this unit
+      } else {
+        bgColor = Colors.white;
+      }
+    } else if (selected) {
       bgColor = const Color(0xFF90CAF9); // blue-200
     } else if (sameNum) {
       bgColor = const Color(0xFFBBDEFB); // blue-100
