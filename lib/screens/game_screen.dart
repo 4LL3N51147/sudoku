@@ -264,6 +264,12 @@ class _GameScreenState extends State<GameScreen> {
 
     // Fill the number and clear highlights
     setState(() {
+      _undoStack.add((
+        row: result.row,
+        col: result.col,
+        oldValue: 0,
+        newValue: result.digit,
+      ));
       _board[result.row][result.col] = result.digit;
       _updateErrors();
       _strategyHighlight = null;
