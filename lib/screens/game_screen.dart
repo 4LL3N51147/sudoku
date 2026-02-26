@@ -89,7 +89,14 @@ class _GameScreenState extends State<GameScreen> {
     if (_isPaused || _isAnimating || _isCompleted) return;
     if (_selectedRow < 0 || _selectedCol < 0) return;
     if (_isGiven[_selectedRow][_selectedCol]) return;
+    if (_board[_selectedRow][_selectedCol] == num) return;  // no-op guard
     setState(() {
+      _undoStack.add((
+        row: _selectedRow,
+        col: _selectedCol,
+        oldValue: _board[_selectedRow][_selectedCol],
+        newValue: num,
+      ));
       _board[_selectedRow][_selectedCol] = num;
       _updateErrors();
       if (_checkWin()) {
@@ -104,7 +111,14 @@ class _GameScreenState extends State<GameScreen> {
     if (_isPaused || _isAnimating || _isCompleted) return;
     if (_selectedRow < 0 || _selectedCol < 0) return;
     if (_isGiven[_selectedRow][_selectedCol]) return;
+    if (_board[_selectedRow][_selectedCol] == 0) return;  // no-op guard
     setState(() {
+      _undoStack.add((
+        row: _selectedRow,
+        col: _selectedCol,
+        oldValue: _board[_selectedRow][_selectedCol],
+        newValue: 0,
+      ));
       _board[_selectedRow][_selectedCol] = 0;
       _updateErrors();
     });
