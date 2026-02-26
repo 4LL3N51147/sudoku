@@ -1,11 +1,14 @@
 enum StrategyPhase { scan, elimination, target }
 
+enum UnitType { row, column, box }
+
 class HiddenSingleResult {
   final int row;
   final int col;
   final int digit;
   final Set<(int, int)> unitCells;
   final Set<(int, int)> eliminatorCells;
+  final UnitType unitType;
 
   const HiddenSingleResult({
     required this.row,
@@ -13,6 +16,7 @@ class HiddenSingleResult {
     required this.digit,
     required this.unitCells,
     required this.eliminatorCells,
+    required this.unitType,
   });
 }
 
@@ -21,12 +25,14 @@ class StrategyHighlight {
   final Set<(int, int)> unitCells;
   final Set<(int, int)> eliminatorCells;
   final (int, int)? targetCell;
+  final UnitType? unitType;
 
   const StrategyHighlight({
     required this.phase,
     this.unitCells = const {},
     this.eliminatorCells = const {},
     this.targetCell,
+    this.unitType,
   });
 }
 
@@ -36,13 +42,13 @@ HiddenSingleResult? findHiddenSingle(List<List<int>> board) {
   // rows
   for (int r = 0; r < 9; r++) {
     final cells = {for (int c = 0; c < 9; c++) (r, c)};
-    final result = _checkUnit(board, cells);
+    final result = _checkUnit(board, cells, UnitType.row);
     if (result != null) return result;
   }
   // columns
   for (int c = 0; c < 9; c++) {
     final cells = {for (int r = 0; r < 9; r++) (r, c)};
-    final result = _checkUnit(board, cells);
+    final result = _checkUnit(board, cells, UnitType.column);
     if (result != null) return result;
   }
   // boxes
@@ -52,7 +58,7 @@ HiddenSingleResult? findHiddenSingle(List<List<int>> board) {
         for (int r = br * 3; r < br * 3 + 3; r++)
           for (int c = bc * 3; c < bc * 3 + 3; c++) (r, c),
       };
-      final result = _checkUnit(board, cells);
+      final result = _checkUnit(board, cells, UnitType.box);
       if (result != null) return result;
     }
   }
@@ -60,7 +66,7 @@ HiddenSingleResult? findHiddenSingle(List<List<int>> board) {
 }
 
 HiddenSingleResult? _checkUnit(
-    List<List<int>> board, Set<(int, int)> unitCells) {
+    List<List<int>> board, Set<(int, int)> unitCells, UnitType unitType) {
   final presentDigits = {
     for (final (r, c) in unitCells)
       if (board[r][c] != 0) board[r][c],
@@ -90,6 +96,7 @@ HiddenSingleResult? _checkUnit(
         digit: digit,
         unitCells: unitCells,
         eliminatorCells: eliminators,
+        unitType: unitType,
       );
     }
   }

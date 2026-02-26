@@ -28,6 +28,7 @@ class _GameScreenState extends State<GameScreen> {
   int _elapsedSeconds = 0;
   Timer? _timer;
   StrategyHighlight? _strategyHighlight;
+  String? _hintMessage;
 
   @override
   void initState() {
@@ -54,6 +55,7 @@ class _GameScreenState extends State<GameScreen> {
     _isAnimating = false;
     _isCompleted = false;
     _strategyHighlight = null;
+    _hintMessage = null;
     _elapsedSeconds = 0;
     _startTimer();
   }
@@ -193,38 +195,53 @@ class _GameScreenState extends State<GameScreen> {
       return;
     }
 
+    final unitLabel = switch (result.unitType) {
+      UnitType.row => 'row',
+      UnitType.column => 'column',
+      UnitType.box => 'box',
+    };
+
     // Phase 1 — scan: highlight the unit
     setState(() {
       _isAnimating = true;
+      _hintMessage =
+          'Scanning this $unitLabel — looking for digit ${result.digit}';
       _strategyHighlight = StrategyHighlight(
         phase: StrategyPhase.scan,
         unitCells: result.unitCells,
+        unitType: result.unitType,
       );
     });
-    await Future.delayed(const Duration(milliseconds: 800));
+    await Future.delayed(const Duration(milliseconds: 1500));
     if (!mounted) return;
 
     // Phase 2 — elimination: show what blocks other cells
     setState(() {
+      _hintMessage =
+          'These filled cells prevent ${result.digit} from going elsewhere in this $unitLabel';
       _strategyHighlight = StrategyHighlight(
         phase: StrategyPhase.elimination,
         unitCells: result.unitCells,
         eliminatorCells: result.eliminatorCells,
+        unitType: result.unitType,
       );
     });
-    await Future.delayed(const Duration(milliseconds: 1200));
+    await Future.delayed(const Duration(milliseconds: 2000));
     if (!mounted) return;
 
     // Phase 3 — target: highlight the answer cell
     setState(() {
+      _hintMessage =
+          '${result.digit} has only one valid cell left in this $unitLabel!';
       _strategyHighlight = StrategyHighlight(
         phase: StrategyPhase.target,
         unitCells: result.unitCells,
         eliminatorCells: result.eliminatorCells,
         targetCell: (result.row, result.col),
+        unitType: result.unitType,
       );
     });
-    await Future.delayed(const Duration(milliseconds: 800));
+    await Future.delayed(const Duration(milliseconds: 1500));
     if (!mounted) return;
 
     // Fill the number and clear highlights
@@ -232,6 +249,7 @@ class _GameScreenState extends State<GameScreen> {
       _board[result.row][result.col] = result.digit;
       _updateErrors();
       _strategyHighlight = null;
+      _hintMessage = null;
       _isAnimating = false;
       _selectedRow = result.row;
       _selectedCol = result.col;
@@ -303,21 +321,27 @@ class _GameScreenState extends State<GameScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 _buildHeader(),
-                const SizedBox(height: 16),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: SudokuBoard(
-                    board: _board,
-                    isGiven: _isGiven,
-                    isError: _isError,
-                    selectedRow: _selectedRow,
-                    selectedCol: _selectedCol,
-                    isPaused: _isPaused,
-                    onCellTap: _onCellTap,
-                    strategyHighlight: _strategyHighlight,
+                const SizedBox(height: 12),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Center(
+                      child: SudokuBoard(
+                        board: _board,
+                        isGiven: _isGiven,
+                        isError: _isError,
+                        selectedRow: _selectedRow,
+                        selectedCol: _selectedCol,
+                        isPaused: _isPaused,
+                        onCellTap: _onCellTap,
+                        strategyHighlight: _strategyHighlight,
+                      ),
+                    ),
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 8),
+                if (_hintMessage != null) _buildHintBanner(_hintMessage!),
+                const SizedBox(height: 8),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   child: NumberPad(
@@ -325,6 +349,7 @@ class _GameScreenState extends State<GameScreen> {
                     onErase: _onErase,
                   ),
                 ),
+                const SizedBox(height: 12),
               ],
             ),
             if (_isPaused) _buildPauseOverlay(),
@@ -390,6 +415,36 @@ class _GameScreenState extends State<GameScreen> {
             iconSize: 28,
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildHintBanner(String message) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: const Color(0xFFE8EAF6),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: const Color(0xFF1A237E), width: 0.5),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.info_outline,
+                color: Color(0xFF1A237E), size: 16),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: Color(0xFF1A237E),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
