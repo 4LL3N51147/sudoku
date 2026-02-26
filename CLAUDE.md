@@ -1,91 +1,83 @@
 # CLAUDE.md — Sudoku Codebase Guide
 
-This file documents the structure, conventions, and workflows for the Sudoku Go project. It is intended to help AI assistants and developers understand and contribute to the codebase effectively.
+A Flutter/Dart Sudoku game targeting web (and mobile).
 
----
-
-## Project Overview
-
-A Go project for building a Sudoku application. The codebase has been reset to a blank slate and is ready for a fresh implementation.
-
-**Current state:** Empty skeleton. `main.go` contains only `package main` and an empty `main()` function.
-
----
-
-## Repository Structure
+## Project Structure
 
 ```
 sudoku/
-├── go.mod       # Go module definition (module: Sudoku, go 1.24)
-├── main.go      # Entry point (empty skeleton)
-├── .gitignore   # Ignores .idea/ (GoLand IDE files)
-└── CLAUDE.md    # This file
+├── lib/
+│   ├── main.dart                    # Entry point (SudokuApp)
+│   ├── logic/
+│   │   ├── sudoku_generator.dart    # Puzzle generation
+│   │   └── strategy_solver.dart     # Hint strategies (pure Dart, no Flutter imports)
+│   ├── screens/
+│   │   ├── difficulty_screen.dart   # White bg, OutlinedButton per difficulty
+│   │   └── game_screen.dart         # Main game: timer, animation, input guards
+│   └── widgets/
+│       ├── sudoku_board.dart        # Stateless board; driven entirely by props
+│       └── number_pad.dart
+├── test/
+│   ├── widget_test.dart
+│   └── logic/strategy_solver_test.dart
+└── web/                             # Flutter web build assets
 ```
-
-All code lives in a single `main` package. There are no external dependencies.
-
----
 
 ## Technology Stack
 
 | Item | Details |
 |------|---------|
-| Language | Go 1.24 |
-| Module name | `Sudoku` |
-| External dependencies | None |
-| Build system | Go toolchain (`go build`, `go run`) |
-| Tests | None yet |
-| CI/CD | None |
-
----
+| Language | Dart 3.x |
+| Framework | Flutter 3.x |
+| Platform | Web (primary), mobile-capable |
+| Package name | `sudoku` |
 
 ## Build & Run
 
 ```bash
-# Run directly
-go run main.go
+# Analyze code (use this instead of flutter test — see Testing section)
+flutter analyze
 
-# Build binary
-go build -o sudoku .
-./sudoku
+# Build for web
+flutter build web
 
-# Run tests (none exist yet)
-go test ./...
+# Serve locally after building
+python3 -m http.server 8080 --directory build/web
 ```
 
----
+## Testing
 
-## Conventions
+**`flutter test` is broken** on this machine due to a connectivity issue with
+`storage.flutter-io.cn` (test runner tries to download assets and fails).
+Use `flutter analyze` to verify correctness instead.
 
-- **Constructor naming:** `New<Type>()` returns a pointer.
-- **Pointer receivers:** use pointer receivers for all methods.
-- **Single package:** all code lives in `package main`. Introduce sub-packages only when the file grows substantially or logical boundaries demand it.
-- **No error handling** for pure in-memory logic; add it when I/O or external state is introduced.
+Logic tests live in `test/logic/` and import only `package:flutter_test/flutter_test.dart`
+plus the pure-Dart logic files. Widget tests are in `test/widget_test.dart`.
 
----
+## Code Conventions
 
-## Development Workflow
-
-```bash
-# Verify code compiles
-go build ./...
-
-# Format code (run before every commit)
-go fmt ./...
-
-# Vet for common issues
-go vet ./...
-
-# Run tests when they exist
-go test ./...
-```
-
-There is no Makefile or pre-commit hook. Run `go fmt` and `go vet` manually before committing.
-
----
+- **Pure logic in `lib/logic/`** — no Flutter imports; fully unit-testable.
+- **Widgets are stateless and prop-driven** — `SudokuBoard` has zero knowledge
+  of game state; all rendering flows from parameters.
+- **Animation guards** — when adding any async animation or timed sequence,
+  guard ALL input handlers (`_onCellTap`, `_onNumberInput`, `_onErase`) and
+  interactive buttons against the animating flag, not just the trigger button.
+- **`_isAnimating` vs `_isPaused`** — these are separate flags; `_isPaused`
+  shows the pause overlay; `_isAnimating` only stops the timer.
 
 ## Git Workflow
 
-- **Active branch:** `claude/claude-md-mm1sjfpehjrszxxo-sLeNK`
-- **Default branch:** `master`
+- **Default branch:** `main`
 - Commit messages should be descriptive.
+
+## Playwright / Browser Automation
+
+Flutter web renders to canvas; accessibility must be enabled before Playwright
+can interact with semantic elements:
+```js
+await page.evaluate(() => {
+  document.querySelector('flt-semantics-placeholder')?.click();
+});
+```
+After this, use snapshot refs (`aria-ref`) to interact with elements. Refs change
+after each navigation — always re-snapshot after page transitions.
