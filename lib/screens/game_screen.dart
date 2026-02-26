@@ -23,6 +23,7 @@ class _GameScreenState extends State<GameScreen> {
   int _selectedRow = -1;
   int _selectedCol = -1;
   bool _isPaused = false;
+  bool _isAnimating = false;
   bool _isCompleted = false;
   int _elapsedSeconds = 0;
   Timer? _timer;
@@ -58,7 +59,7 @@ class _GameScreenState extends State<GameScreen> {
   void _startTimer() {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (!_isPaused && !_isCompleted && mounted) {
+      if (!_isPaused && !_isAnimating && !_isCompleted && mounted) {
         setState(() => _elapsedSeconds++);
       }
     });
@@ -190,8 +191,7 @@ class _GameScreenState extends State<GameScreen> {
       return;
     }
 
-    final wasRunning = !_isPaused && !_isCompleted;
-    if (wasRunning) setState(() => _isPaused = true);
+    setState(() => _isAnimating = true);
 
     // Phase 1 — scan: highlight the unit
     setState(() {
@@ -231,9 +231,9 @@ class _GameScreenState extends State<GameScreen> {
       _board[result.row][result.col] = result.digit;
       _updateErrors();
       _strategyHighlight = null;
+      _isAnimating = false;
       _selectedRow = result.row;
       _selectedCol = result.col;
-      if (wasRunning) _isPaused = false;
       if (_checkWin()) {
         _isCompleted = true;
         _timer?.cancel();
@@ -376,7 +376,7 @@ class _GameScreenState extends State<GameScreen> {
           ),
           IconButton(
             icon: const Icon(Icons.lightbulb_outline),
-            onPressed: (_isPaused || _isCompleted || _strategyHighlight != null)
+            onPressed: (_isPaused || _isAnimating || _isCompleted)
                 ? null
                 : _showStrategyPicker,
             color: const Color(0xFF1A237E),
