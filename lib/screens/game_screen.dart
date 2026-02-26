@@ -275,6 +275,13 @@ class _GameScreenState extends State<GameScreen> {
 
     // Fill the number and clear highlights
     setState(() {
+      final oldValue = _board[result.row][result.col];
+      _undoStack.add((
+        row: result.row,
+        col: result.col,
+        oldValue: oldValue,
+        newValue: result.digit,
+      ));
       _board[result.row][result.col] = result.digit;
       _updateErrors();
       _strategyHighlight = null;
@@ -285,13 +292,6 @@ class _GameScreenState extends State<GameScreen> {
       if (_checkWin()) {
         _isCompleted = true;
         _timer?.cancel();
-      } else {
-        _undoStack.add((
-          row: result.row,
-          col: result.col,
-          oldValue: 0,
-          newValue: result.digit,
-        ));
       }
     });
 
@@ -406,6 +406,13 @@ class _GameScreenState extends State<GameScreen> {
               _timer?.cancel();
               Navigator.pop(context);
             },
+          ),
+          IconButton(
+            icon: const Icon(Icons.undo),
+            onPressed: (_isPaused || _isAnimating || _isCompleted || _undoStack.isEmpty)
+                ? null
+                : _undo,
+            color: const Color(0xFF1A237E),
           ),
           Expanded(
             child: Column(
