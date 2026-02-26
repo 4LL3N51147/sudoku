@@ -119,7 +119,7 @@ class SudokuBoard extends StatelessWidget {
 
     Color bgColor;
     final sh = strategyHighlight;
-    if (sh != null && sh.phase != StrategyPhase.none) {
+    if (sh != null) {
       final cell = (row, col);
       if (sh.phase == StrategyPhase.target && sh.targetCell == cell) {
         bgColor = const Color(0xFFC8E6C9); // green-100 — place digit here

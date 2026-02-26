@@ -51,7 +51,9 @@ class _GameScreenState extends State<GameScreen> {
     _selectedRow = -1;
     _selectedCol = -1;
     _isPaused = false;
+    _isAnimating = false;
     _isCompleted = false;
+    _strategyHighlight = null;
     _elapsedSeconds = 0;
     _startTimer();
   }
@@ -70,7 +72,7 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _onCellTap(int row, int col) {
-    if (_isPaused || _isCompleted) return;
+    if (_isPaused || _isAnimating || _isCompleted) return;
     setState(() {
       _selectedRow = row;
       _selectedCol = col;
@@ -78,7 +80,7 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _onNumberInput(int num) {
-    if (_isPaused || _isCompleted) return;
+    if (_isPaused || _isAnimating || _isCompleted) return;
     if (_selectedRow < 0 || _selectedCol < 0) return;
     if (_isGiven[_selectedRow][_selectedCol]) return;
     setState(() {
@@ -93,7 +95,7 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _onErase() {
-    if (_isPaused || _isCompleted) return;
+    if (_isPaused || _isAnimating || _isCompleted) return;
     if (_selectedRow < 0 || _selectedCol < 0) return;
     if (_isGiven[_selectedRow][_selectedCol]) return;
     setState(() {
@@ -191,10 +193,9 @@ class _GameScreenState extends State<GameScreen> {
       return;
     }
 
-    setState(() => _isAnimating = true);
-
     // Phase 1 — scan: highlight the unit
     setState(() {
+      _isAnimating = true;
       _strategyHighlight = StrategyHighlight(
         phase: StrategyPhase.scan,
         unitCells: result.unitCells,
@@ -271,7 +272,7 @@ class _GameScreenState extends State<GameScreen> {
               ),
               onTap: () {
                 Navigator.pop(context);
-                _runHiddenSingleHint();
+                unawaited(_runHiddenSingleHint());
               },
             ),
           ],
@@ -384,7 +385,7 @@ class _GameScreenState extends State<GameScreen> {
           ),
           IconButton(
             icon: Icon(_isPaused ? Icons.play_arrow_rounded : Icons.pause_rounded),
-            onPressed: _togglePause,
+            onPressed: _isAnimating ? null : _togglePause,
             color: const Color(0xFF1A237E),
             iconSize: 28,
           ),

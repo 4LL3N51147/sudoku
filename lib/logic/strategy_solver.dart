@@ -1,4 +1,4 @@
-enum StrategyPhase { none, scan, elimination, target }
+enum StrategyPhase { scan, elimination, target }
 
 class HiddenSingleResult {
   final int row;
