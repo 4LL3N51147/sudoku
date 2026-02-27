@@ -513,6 +513,7 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Widget _buildHintBanner(String message) {
+    final bool hasNextButton = _hintPhase != null && _hintPhase! < 2;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Container(
@@ -536,6 +537,21 @@ class _GameScreenState extends State<GameScreen> {
                 ),
               ),
             ),
+            if (hasNextButton) ...[
+              const SizedBox(width: 8),
+              TextButton(
+                onPressed: (_isPaused || _isCompleted)
+                    ? null
+                    : _advanceHintPhase,
+                child: const Text(
+                  'Next \u2192',
+                  style: TextStyle(
+                    color: Color(0xFF1A237E),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
