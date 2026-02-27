@@ -1,9 +1,70 @@
 import 'package:flutter/material.dart';
+import '../logic/game_state.dart';
 import '../logic/sudoku_generator.dart';
 import 'game_screen.dart';
 
-class DifficultyScreen extends StatelessWidget {
+class DifficultyScreen extends StatefulWidget {
   const DifficultyScreen({super.key});
+
+  @override
+  State<DifficultyScreen> createState() => _DifficultyScreenState();
+}
+
+class _DifficultyScreenState extends State<DifficultyScreen> {
+  void _handleImport() async {
+    final controller = TextEditingController();
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Import Game'),
+        content: TextField(
+          controller: controller,
+          maxLines: 10,
+          decoration: const InputDecoration(
+            hintText: 'Paste game JSON here...',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, controller.text),
+            child: const Text('Import'),
+          ),
+        ],
+      ),
+    );
+
+    if (result != null && result.isNotEmpty && mounted) {
+      _importGame(result);
+    }
+  }
+
+  void _importGame(String jsonString) {
+    try {
+      final state = GameState.fromJsonString(jsonString);
+      if (mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => GameScreen(
+              difficulty: state.difficulty,
+              initialState: state,
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Invalid game file: $e')),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -48,6 +109,22 @@ class DifficultyScreen extends StatelessWidget {
                 subtitle: '29 given numbers',
                 color: const Color(0xFFE53935),
                 difficulty: Difficulty.hard,
+              ),
+              const SizedBox(height: 24),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 40),
+                child: OutlinedButton.icon(
+                  onPressed: _handleImport,
+                  icon: const Icon(Icons.file_upload_outlined),
+                  label: const Text('Import Game'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF1A237E),
+                    minimumSize: const Size(double.infinity, 48),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                ),
               ),
               const Spacer(flex: 3),
             ],
