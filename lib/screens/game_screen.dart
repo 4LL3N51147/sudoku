@@ -5,6 +5,7 @@ import '../logic/strategy_solver.dart';
 import '../widgets/sudoku_board.dart';
 import '../widgets/number_pad.dart';
 import '../app_settings.dart';
+import '../widgets/settings_sheet.dart';
 
 typedef _Move = ({int row, int col, int oldValue, int newValue});
 
@@ -343,6 +344,22 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
+  void _showSettings() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => SettingsSheet(
+        settings: _settings,
+        onChanged: (newSettings) {
+          setState(() => _settings = newSettings);
+          newSettings.save();
+        },
+      ),
+    );
+  }
+
   String _difficultyLabel() {
     switch (widget.difficulty) {
       case Difficulty.easy:
@@ -420,6 +437,13 @@ class _GameScreenState extends State<GameScreen> {
             onPressed: (_isPaused || _isAnimating || _isCompleted || _undoStack.isEmpty)
                 ? null
                 : _undo,
+            color: const Color(0xFF1A237E),
+          ),
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: (_isPaused || _isAnimating || _isCompleted)
+                ? null
+                : _showSettings,
             color: const Color(0xFF1A237E),
           ),
           Expanded(
