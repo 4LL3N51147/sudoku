@@ -60,5 +60,21 @@ void main() {
 
       expect(() => GameState.fromJson(json), throwsA(isA<Exception>()));
     });
+
+    test('throws on invalid difficulty', () {
+      final json = {
+        'version': 1,
+        'difficulty': 'invalid_difficulty',
+        'elapsedSeconds': 0,
+        'board': List.generate(9, (_) => List.filled(9, 0)),
+        'solution': List.generate(9, (_) => List.filled(9, 0)),
+        'isGiven': List.generate(9, (_) => List.filled(9, false)),
+        'isError': List.generate(9, (_) => List.filled(9, false)),
+        'undoStack': [],
+        'savedAt': '2026-02-27T10:00:00.000Z',
+      };
+
+      expect(() => GameState.fromJson(json), throwsA(isA<Exception>()));
+    });
   });
 }

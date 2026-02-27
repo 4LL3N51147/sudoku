@@ -47,11 +47,15 @@ class GameState {
       throw Exception('Unsupported game state version: $version');
     }
 
+    final difficultyString = json['difficulty'] as String;
+    final difficulty = Difficulty.values.where((d) => d.name == difficultyString).firstOrNull;
+    if (difficulty == null) {
+      throw Exception('Invalid difficulty: "$difficultyString". Expected one of: ${Difficulty.values.map((d) => d.name).join(', ')}');
+    }
+
     return GameState(
       version: version,
-      difficulty: Difficulty.values.firstWhere(
-        (d) => d.name == json['difficulty'],
-      ),
+      difficulty: difficulty,
       elapsedSeconds: json['elapsedSeconds'] as int,
       board: _parseBoardFromJson(json['board'] as List),
       solution: _parseBoardFromJson(json['solution'] as List),
@@ -67,6 +71,21 @@ class GameState {
   }
 
   static List<List<int>> _parseBoardFromJson(List<dynamic> json) {
+    if (json.length != 9) {
+      throw Exception('Board must have 9 rows, got ${json.length}');
+    }
+    for (var i = 0; i < json.length; i++) {
+      final row = json[i] as List<dynamic>;
+      if (row.length != 9) {
+        throw Exception('Board row $i must have 9 columns, got ${row.length}');
+      }
+      for (var j = 0; j < row.length; j++) {
+        final value = row[j] as int;
+        if (value < 0 || value > 9) {
+          throw Exception('Board cell ($i, $j) must be 0-9, got $value');
+        }
+      }
+    }
     return json
         .map((row) => (row as List<dynamic>).map((e) => e as int).toList())
         .toList();
@@ -77,6 +96,15 @@ class GameState {
   }
 
   static List<List<bool>> _parseBoolBoardFromJson(List<dynamic> json) {
+    if (json.length != 9) {
+      throw Exception('Bool board must have 9 rows, got ${json.length}');
+    }
+    for (var i = 0; i < json.length; i++) {
+      final row = json[i] as List<dynamic>;
+      if (row.length != 9) {
+        throw Exception('Bool board row $i must have 9 columns, got ${row.length}');
+      }
+    }
     return json
         .map((row) => (row as List<dynamic>).map((e) => e as bool).toList())
         .toList();
