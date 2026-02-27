@@ -4,6 +4,7 @@ import '../logic/sudoku_generator.dart';
 import '../logic/strategy_solver.dart';
 import '../widgets/sudoku_board.dart';
 import '../widgets/number_pad.dart';
+import '../app_settings.dart';
 
 typedef _Move = ({int row, int col, int oldValue, int newValue});
 
@@ -32,11 +33,18 @@ class _GameScreenState extends State<GameScreen> {
   StrategyHighlight? _strategyHighlight;
   String? _hintMessage;
   final List<_Move> _undoStack = [];
+  AppSettings _settings = const AppSettings();
 
   @override
   void initState() {
     super.initState();
     _newGame();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    final settings = await AppSettings.load();
+    if (mounted) setState(() => _settings = settings);
   }
 
   @override
@@ -241,7 +249,7 @@ class _GameScreenState extends State<GameScreen> {
         unitType: result.unitType,
       );
     });
-    await Future.delayed(const Duration(milliseconds: 1500));
+    await Future.delayed(Duration(milliseconds: _settings.hintScanMs));
     if (!mounted) return;
 
     // Phase 2 — elimination: show what blocks other cells
@@ -255,7 +263,7 @@ class _GameScreenState extends State<GameScreen> {
         unitType: result.unitType,
       );
     });
-    await Future.delayed(const Duration(milliseconds: 2000));
+    await Future.delayed(Duration(milliseconds: _settings.hintEliminationMs));
     if (!mounted) return;
 
     // Phase 3 — target: highlight the answer cell
@@ -270,7 +278,7 @@ class _GameScreenState extends State<GameScreen> {
         unitType: result.unitType,
       );
     });
-    await Future.delayed(const Duration(milliseconds: 1500));
+    await Future.delayed(Duration(milliseconds: _settings.hintTargetMs));
     if (!mounted) return;
 
     // Fill the number and clear highlights
