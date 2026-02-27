@@ -33,6 +33,8 @@ class _GameScreenState extends State<GameScreen> {
   Timer? _timer;
   StrategyHighlight? _strategyHighlight;
   String? _hintMessage;
+  int? _hintPhase; // null = no hint, 0 = scan, 1 = elimination, 2 = target
+  HiddenSingleResult? _currentHintResult;
   final List<_Move> _undoStack = [];
   AppSettings _settings = const AppSettings();
 
@@ -68,6 +70,7 @@ class _GameScreenState extends State<GameScreen> {
     _isCompleted = false;
     _strategyHighlight = null;
     _hintMessage = null;
+    _hintPhase = null;
     _undoStack.clear();
     _elapsedSeconds = 0;
     _startTimer();
