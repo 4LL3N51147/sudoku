@@ -1,9 +1,10 @@
 import 'dart:async';
-import 'dart:html' show AnchorElement, Blob, Url;
 import 'package:flutter/material.dart';
 import '../logic/sudoku_generator.dart';
 import '../logic/strategy_solver.dart';
 import '../logic/game_state.dart';
+import '../logic/web_export_stub.dart'
+    if (dart.library.html) '../logic/web_export.dart';
 import '../widgets/sudoku_board.dart';
 import '../widgets/number_pad.dart';
 import '../app_settings.dart';
@@ -412,22 +413,15 @@ class _GameScreenState extends State<GameScreen> {
     );
 
     final jsonString = state.toJsonString();
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final filename = 'sudoku-${widget.difficulty.name}-$timestamp.sudoku';
 
     try {
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final blob = Blob([jsonString], 'application/json');
-      final url = Url.createObjectUrlFromBlob(blob);
-      AnchorElement(href: url)
-        ..setAttribute('download', 'sudoku-${widget.difficulty.name}-$timestamp.sudoku')
-        ..click();
-      // Delay revocation slightly to ensure download initiates
-      Future.delayed(const Duration(milliseconds: 100), () => Url.revokeObjectUrl(url));
-
+      downloadJson(jsonString, filename);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Game exported!')),
       );
     } catch (e) {
-      // Show error instead of misleading success
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Export failed: $e')),
       );
