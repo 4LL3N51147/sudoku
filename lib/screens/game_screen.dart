@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:html' show AnchorElement, Blob, Url;
 import 'package:flutter/material.dart';
 import '../logic/sudoku_generator.dart';
 import '../logic/strategy_solver.dart';
+import '../logic/game_state.dart';
 import '../widgets/sudoku_board.dart';
 import '../widgets/number_pad.dart';
 import '../app_settings.dart';
@@ -11,8 +13,13 @@ typedef _Move = ({int row, int col, int oldValue, int newValue});
 
 class GameScreen extends StatefulWidget {
   final Difficulty difficulty;
+  final GameState? initialState;  // Add this
 
-  const GameScreen({super.key, required this.difficulty});
+  const GameScreen({
+    super.key,
+    required this.difficulty,
+    this.initialState,  // Add this
+  });
 
   @override
   State<GameScreen> createState() => _GameScreenState();
@@ -57,12 +64,28 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _newGame() {
-    final result = SudokuGenerator.generate(widget.difficulty);
-    _solution = result.solution;
-    _isGiven = List.generate(
-        9, (r) => List.generate(9, (c) => result.puzzle[r][c] != 0));
-    _board = result.puzzle.map((row) => List<int>.from(row)).toList();
-    _isError = List.generate(9, (_) => List.filled(9, false));
+    if (widget.initialState != null) {
+      // Load from imported state
+      final state = widget.initialState!;
+      _solution = state.solution;
+      _isGiven = state.isGiven;
+      _board = state.board.map((row) => List<int>.from(row)).toList();
+      _isError = state.isError.map((row) => List<bool>.from(row)).toList();
+      _undoStack.clear();
+      _undoStack.addAll(state.undoStack);
+      _elapsedSeconds = state.elapsedSeconds;
+    } else {
+      // Generate new game (existing code)
+      final result = SudokuGenerator.generate(widget.difficulty);
+      _solution = result.solution;
+      _isGiven = List.generate(
+          9, (r) => List.generate(9, (c) => result.puzzle[r][c] != 0));
+      _board = result.puzzle.map((row) => List<int>.from(row)).toList();
+      _isError = List.generate(9, (_) => List.filled(9, false));
+      _undoStack.clear();
+      _elapsedSeconds = 0;
+    }
+    // Keep the rest of the initialization:
     _selectedRow = -1;
     _selectedCol = -1;
     _isPaused = false;
@@ -71,8 +94,6 @@ class _GameScreenState extends State<GameScreen> {
     _strategyHighlight = null;
     _hintMessage = null;
     _hintPhase = null;
-    _undoStack.clear();
-    _elapsedSeconds = 0;
     _startTimer();
   }
 
@@ -378,6 +399,41 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
+  void _exportGame() {
+    final state = GameState(
+      difficulty: widget.difficulty,
+      elapsedSeconds: _elapsedSeconds,
+      board: _board,
+      solution: _solution,
+      isGiven: _isGiven,
+      isError: _isError,
+      undoStack: _undoStack,
+      savedAt: DateTime.now(),
+    );
+
+    final jsonString = state.toJsonString();
+
+    try {
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final blob = Blob([jsonString], 'application/json');
+      final url = Url.createObjectUrlFromBlob(blob);
+      AnchorElement(href: url)
+        ..setAttribute('download', 'sudoku-${widget.difficulty.name}-$timestamp.sudoku')
+        ..click();
+      // Delay revocation slightly to ensure download initiates
+      Future.delayed(const Duration(milliseconds: 100), () => Url.revokeObjectUrl(url));
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Game exported!')),
+      );
+    } catch (e) {
+      // Show error instead of misleading success
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Export failed: $e')),
+      );
+    }
+  }
+
   String _difficultyLabel() {
     switch (widget.difficulty) {
       case Difficulty.easy:
@@ -498,6 +554,14 @@ class _GameScreenState extends State<GameScreen> {
             onPressed: (_isPaused || _isAnimating || _isCompleted)
                 ? null
                 : _showStrategyPicker,
+            color: const Color(0xFF1A237E),
+            iconSize: 26,
+          ),
+          IconButton(
+            icon: const Icon(Icons.share_outlined),
+            onPressed: (_isPaused || _isAnimating || _isCompleted)
+                ? null
+                : _exportGame,
             color: const Color(0xFF1A237E),
             iconSize: 26,
           ),
