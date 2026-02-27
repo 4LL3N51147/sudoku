@@ -554,18 +554,18 @@ class _GameScreenState extends State<GameScreen> {
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.lightbulb_outline),
-            onPressed: (_isPaused || _isAnimating || _isCompleted)
-                ? null
-                : _showStrategyPicker,
-            color: const Color(0xFF1A237E),
-            iconSize: 26,
-          ),
-          IconButton(
             icon: const Icon(Icons.share_outlined),
             onPressed: (_isPaused || _isAnimating || _isCompleted)
                 ? null
                 : _exportGame,
+            color: const Color(0xFF1A237E),
+            iconSize: 26,
+          ),
+          IconButton(
+            icon: const Icon(Icons.lightbulb_outline),
+            onPressed: (_isPaused || _isAnimating || _isCompleted)
+                ? null
+                : _showStrategyPicker,
             color: const Color(0xFF1A237E),
             iconSize: 26,
           ),
