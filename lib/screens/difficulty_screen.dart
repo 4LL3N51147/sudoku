@@ -11,14 +11,22 @@ class DifficultyScreen extends StatefulWidget {
 }
 
 class _DifficultyScreenState extends State<DifficultyScreen> {
+  final TextEditingController _importController = TextEditingController();
+
+  @override
+  void dispose() {
+    _importController.dispose();
+    super.dispose();
+  }
+
   void _handleImport() async {
-    final controller = TextEditingController();
+    _importController.clear();
     final result = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Import Game'),
         content: TextField(
-          controller: controller,
+          controller: _importController,
           maxLines: 10,
           decoration: const InputDecoration(
             hintText: 'Paste game JSON here...',
@@ -31,7 +39,7 @@ class _DifficultyScreenState extends State<DifficultyScreen> {
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, controller.text),
+            onPressed: () => Navigator.pop(ctx, _importController.text),
             child: const Text('Import'),
           ),
         ],
