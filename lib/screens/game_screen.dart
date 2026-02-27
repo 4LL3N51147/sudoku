@@ -236,15 +236,17 @@ class _GameScreenState extends State<GameScreen> {
       return;
     }
 
+    _currentHintResult = result;
     final unitLabel = switch (result.unitType) {
       UnitType.row => 'row',
       UnitType.column => 'column',
       UnitType.box => 'box',
     };
 
-    // Phase 1 — scan: highlight the unit
+    // Phase 0 — scan: highlight the unit
     setState(() {
       _isAnimating = true;
+      _hintPhase = 0;
       _hintMessage =
           'Scanning this $unitLabel — looking for digit ${result.digit}';
       _strategyHighlight = StrategyHighlight(
@@ -253,61 +255,74 @@ class _GameScreenState extends State<GameScreen> {
         unitType: result.unitType,
       );
     });
-    await Future.delayed(Duration(milliseconds: _settings.hintScanMs));
-    if (!mounted) return;
+  }
 
-    // Phase 2 — elimination: show what blocks other cells
-    setState(() {
-      _hintMessage =
-          'These filled cells prevent ${result.digit} from going elsewhere in this $unitLabel';
-      _strategyHighlight = StrategyHighlight(
-        phase: StrategyPhase.elimination,
-        unitCells: result.unitCells,
-        eliminatorCells: result.eliminatorCells,
-        unitType: result.unitType,
-      );
-    });
-    await Future.delayed(Duration(milliseconds: _settings.hintEliminationMs));
-    if (!mounted) return;
+  void _advanceHintPhase() {
+    if (_hintPhase == null) return; // no hint active
+    if (_isPaused || _isCompleted) return;
 
-    // Phase 3 — target: highlight the answer cell
-    setState(() {
-      _hintMessage =
-          '${result.digit} has only one valid cell left in this $unitLabel!';
-      _strategyHighlight = StrategyHighlight(
-        phase: StrategyPhase.target,
-        unitCells: result.unitCells,
-        eliminatorCells: result.eliminatorCells,
-        targetCell: (result.row, result.col),
-        unitType: result.unitType,
-      );
-    });
-    await Future.delayed(Duration(milliseconds: _settings.hintTargetMs));
-    if (!mounted) return;
+    final result = _currentHintResult;
+    if (result == null) return;
 
-    // Fill the number and clear highlights
-    setState(() {
-      final oldValue = _board[result.row][result.col];
-      _undoStack.add((
-        row: result.row,
-        col: result.col,
-        oldValue: oldValue,
-        newValue: result.digit,
-      ));
-      _board[result.row][result.col] = result.digit;
-      _updateErrors();
-      _strategyHighlight = null;
-      _hintMessage = null;
-      _isAnimating = false;
-      _selectedRow = result.row;
-      _selectedCol = result.col;
-      if (_checkWin()) {
-        _isCompleted = true;
-        _timer?.cancel();
-      }
-    });
+    if (_hintPhase! < 2) {
+      // Advance to next phase
+      setState(() {
+        _hintPhase = _hintPhase! + 1;
+        final unitLabel = switch (result.unitType) {
+          UnitType.row => 'row',
+          UnitType.column => 'column',
+          UnitType.box => 'box',
+        };
 
-    if (_isCompleted) _showWinDialog();
+        if (_hintPhase == 1) {
+          // Elimination phase
+          _hintMessage =
+              'These filled cells prevent ${result.digit} from going elsewhere in this $unitLabel';
+          _strategyHighlight = StrategyHighlight(
+            phase: StrategyPhase.elimination,
+            unitCells: result.unitCells,
+            eliminatorCells: result.eliminatorCells,
+            unitType: result.unitType,
+          );
+        } else if (_hintPhase == 2) {
+          // Target phase
+          _hintMessage =
+              '${result.digit} has only one valid cell left in this $unitLabel!';
+          _strategyHighlight = StrategyHighlight(
+            phase: StrategyPhase.target,
+            unitCells: result.unitCells,
+            eliminatorCells: result.eliminatorCells,
+            targetCell: (result.row, result.col),
+            unitType: result.unitType,
+          );
+        }
+      });
+    } else {
+      // Phase 2 complete - fill the cell
+      setState(() {
+        final oldValue = _board[result.row][result.col];
+        _undoStack.add((
+          row: result.row,
+          col: result.col,
+          oldValue: oldValue,
+          newValue: result.digit,
+        ));
+        _board[result.row][result.col] = result.digit;
+        _updateErrors();
+        _strategyHighlight = null;
+        _hintMessage = null;
+        _hintPhase = null;
+        _currentHintResult = null;
+        _isAnimating = false;
+        _selectedRow = result.row;
+        _selectedCol = result.col;
+        if (_checkWin()) {
+          _isCompleted = true;
+          _timer?.cancel();
+        }
+      });
+      if (_isCompleted) _showWinDialog();
+    }
   }
 
   void _showStrategyPicker() {
