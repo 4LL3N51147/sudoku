@@ -1,0 +1,114 @@
+import 'dart:convert';
+
+import 'package:sudoku/logic/sudoku_generator.dart';
+
+typedef _Move = ({int row, int col, int oldValue, int newValue});
+
+class GameState {
+  final int version;
+  final Difficulty difficulty;
+  final int elapsedSeconds;
+  final List<List<int>> board;
+  final List<List<int>> solution;
+  final List<List<bool>> isGiven;
+  final List<List<bool>> isError;
+  final List<_Move> undoStack;
+  final DateTime savedAt;
+
+  GameState({
+    this.version = 1,
+    required this.difficulty,
+    required this.elapsedSeconds,
+    required this.board,
+    required this.solution,
+    required this.isGiven,
+    required this.isError,
+    required this.undoStack,
+    required this.savedAt,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'version': version,
+      'difficulty': difficulty.name,
+      'elapsedSeconds': elapsedSeconds,
+      'board': _parseBoard(board),
+      'solution': _parseBoard(solution),
+      'isGiven': _parseBoolBoard(isGiven),
+      'isError': _parseBoolBoard(isError),
+      'undoStack': _parseUndoStack(undoStack),
+      'savedAt': savedAt.toIso8601String(),
+    };
+  }
+
+  factory GameState.fromJson(Map<String, dynamic> json) {
+    final version = json['version'] as int;
+    if (version != 1) {
+      throw Exception('Unsupported game state version: $version');
+    }
+
+    return GameState(
+      version: version,
+      difficulty: Difficulty.values.firstWhere(
+        (d) => d.name == json['difficulty'],
+      ),
+      elapsedSeconds: json['elapsedSeconds'] as int,
+      board: _parseBoardFromJson(json['board'] as List),
+      solution: _parseBoardFromJson(json['solution'] as List),
+      isGiven: _parseBoolBoardFromJson(json['isGiven'] as List),
+      isError: _parseBoolBoardFromJson(json['isError'] as List),
+      undoStack: _parseUndoStackFromJson(json['undoStack'] as List),
+      savedAt: DateTime.parse(json['savedAt'] as String),
+    );
+  }
+
+  static List<List<int>> _parseBoard(List<List<int>> board) {
+    return board.map((row) => List<int>.from(row)).toList();
+  }
+
+  static List<List<int>> _parseBoardFromJson(List<dynamic> json) {
+    return json
+        .map((row) => (row as List<dynamic>).map((e) => e as int).toList())
+        .toList();
+  }
+
+  static List<List<bool>> _parseBoolBoard(List<List<bool>> board) {
+    return board.map((row) => List<bool>.from(row)).toList();
+  }
+
+  static List<List<bool>> _parseBoolBoardFromJson(List<dynamic> json) {
+    return json
+        .map((row) => (row as List<dynamic>).map((e) => e as bool).toList())
+        .toList();
+  }
+
+  static List<Map<String, dynamic>> _parseUndoStack(List<_Move> stack) {
+    return stack
+        .map((move) => {
+              'row': move.row,
+              'col': move.col,
+              'oldValue': move.oldValue,
+              'newValue': move.newValue,
+            })
+        .toList();
+  }
+
+  static List<_Move> _parseUndoStackFromJson(List<dynamic> json) {
+    return json
+        .map((move) => (
+              row: move['row'] as int,
+              col: move['col'] as int,
+              oldValue: move['oldValue'] as int,
+              newValue: move['newValue'] as int,
+            ))
+        .toList();
+  }
+
+  String toJsonString() {
+    return jsonEncode(toJson());
+  }
+
+  factory GameState.fromJsonString(String jsonString) {
+    return GameState.fromJson(jsonDecode(jsonString) as Map<String, dynamic>);
+  }
+}
