@@ -513,7 +513,7 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Widget _buildHintBanner(String message) {
-    final bool hasNextButton = _hintPhase != null && _hintPhase! < 2;
+    final bool hasNextButton = _hintPhase != null && _hintPhase! <= 2;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Container(
