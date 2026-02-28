@@ -489,6 +489,7 @@ class _GameScreenState extends State<GameScreen> {
                         isPaused: _isPaused,
                         onCellTap: _onCellTap,
                         strategyHighlight: _strategyHighlight,
+                        pencilMarks: _pencilMarks,
                       ),
                     ),
                   ),

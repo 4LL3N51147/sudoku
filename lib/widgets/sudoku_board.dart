@@ -10,6 +10,7 @@ class SudokuBoard extends StatelessWidget {
   final bool isPaused;
   final void Function(int row, int col) onCellTap;
   final StrategyHighlight? strategyHighlight;
+  final List<List<Set<int>>> pencilMarks;
 
   const SudokuBoard({
     super.key,
@@ -21,6 +22,7 @@ class SudokuBoard extends StatelessWidget {
     required this.isPaused,
     required this.onCellTap,
     this.strategyHighlight,
+    this.pencilMarks = const [],
   });
 
   bool _isHighlighted(int row, int col) {
@@ -164,18 +166,53 @@ class SudokuBoard extends StatelessWidget {
                 : BorderSide.none,
           ),
         ),
-        child: Center(
-          child: value == 0
-              ? null
-              : Text(
-                  '$value',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight:
-                        given ? FontWeight.bold : FontWeight.w500,
-                    color: textColor,
+        child: Stack(
+          children: [
+            // Main number or empty
+            Center(
+              child: value == 0
+                  ? null
+                  : Text(
+                      '$value',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight:
+                            given ? FontWeight.bold : FontWeight.w500,
+                        color: textColor,
+                      ),
+                    ),
+            ),
+            // Pencil marks (show in top-left corner when cell is empty)
+            if (value == 0 && pencilMarks.isNotEmpty && pencilMarks[row][col].isNotEmpty)
+              Positioned(
+                top: 1,
+                left: 2,
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: Wrap(
+                    spacing: 0,
+                    runSpacing: 0,
+                    children: [
+                      for (int i = 1; i <= 9; i++)
+                        SizedBox(
+                          width: 6,
+                          height: 6,
+                          child: Text(
+                            '$i',
+                            style: TextStyle(
+                              fontSize: 6,
+                              color: pencilMarks[row][col].contains(i)
+                                  ? Colors.grey[600]
+                                  : Colors.transparent,
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
+              ),
+          ],
         ),
       ),
     );
