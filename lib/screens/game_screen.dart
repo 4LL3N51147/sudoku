@@ -37,6 +37,8 @@ class _GameScreenState extends State<GameScreen> {
   bool _isPaused = false;
   bool _isAnimating = false;
   bool _isCompleted = false;
+  bool _isPencilMode = false;
+  late List<List<Set<int>>> _pencilMarks;
   int _elapsedSeconds = 0;
   Timer? _timer;
   StrategyHighlight? _strategyHighlight;
@@ -72,6 +74,7 @@ class _GameScreenState extends State<GameScreen> {
       _isGiven = state.isGiven;
       _board = state.board.map((row) => List<int>.from(row)).toList();
       _isError = state.isError.map((row) => List<bool>.from(row)).toList();
+      _pencilMarks = List.generate(9, (_) => List.generate(9, (_) => <int>{}));
       _undoStack.clear();
       _undoStack.addAll(state.undoStack);
       _elapsedSeconds = state.elapsedSeconds;
@@ -83,6 +86,7 @@ class _GameScreenState extends State<GameScreen> {
           9, (r) => List.generate(9, (c) => result.puzzle[r][c] != 0));
       _board = result.puzzle.map((row) => List<int>.from(row)).toList();
       _isError = List.generate(9, (_) => List.filled(9, false));
+      _pencilMarks = List.generate(9, (_) => List.generate(9, (_) => <int>{}));
       _undoStack.clear();
       _elapsedSeconds = 0;
     }
@@ -92,6 +96,7 @@ class _GameScreenState extends State<GameScreen> {
     _isPaused = false;
     _isAnimating = false;
     _isCompleted = false;
+    _isPencilMode = false;
     _strategyHighlight = null;
     _hintMessage = null;
     _hintPhase = null;
@@ -123,6 +128,20 @@ class _GameScreenState extends State<GameScreen> {
     if (_isPaused || _isAnimating || _isCompleted) return;
     if (_selectedRow < 0 || _selectedCol < 0) return;
     if (_isGiven[_selectedRow][_selectedCol]) return;
+
+    // Handle pencil mode
+    if (_isPencilMode) {
+      setState(() {
+        final cellMarks = _pencilMarks[_selectedRow][_selectedCol];
+        if (cellMarks.contains(num)) {
+          cellMarks.remove(num);
+        } else {
+          cellMarks.add(num);
+        }
+      });
+      return;
+    }
+
     if (_board[_selectedRow][_selectedCol] == num) return;  // no-op guard
     setState(() {
       _undoStack.add((
@@ -132,6 +151,7 @@ class _GameScreenState extends State<GameScreen> {
         newValue: num,
       ));
       _board[_selectedRow][_selectedCol] = num;
+      _pencilMarks[_selectedRow][_selectedCol].clear();
       _updateErrors();
       if (_checkWin()) {
         _isCompleted = true;
@@ -154,6 +174,7 @@ class _GameScreenState extends State<GameScreen> {
         newValue: 0,
       ));
       _board[_selectedRow][_selectedCol] = 0;
+      _pencilMarks[_selectedRow][_selectedCol].clear();
       _updateErrors();
     });
   }
@@ -428,6 +449,10 @@ class _GameScreenState extends State<GameScreen> {
     }
   }
 
+  void _togglePencilMode() {
+    setState(() => _isPencilMode = !_isPencilMode);
+  }
+
   String _difficultyLabel() {
     switch (widget.difficulty) {
       case Difficulty.easy:
@@ -464,12 +489,13 @@ class _GameScreenState extends State<GameScreen> {
                         isPaused: _isPaused,
                         onCellTap: _onCellTap,
                         strategyHighlight: _strategyHighlight,
+                        pencilMarks: _pencilMarks,
                       ),
                     ),
                   ),
                 ),
                 const SizedBox(height: 8),
-                if (_hintMessage != null) _buildHintBanner(_hintMessage!),
+                _buildHintBannerPlaceholder(),
                 const SizedBox(height: 8),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -514,6 +540,14 @@ class _GameScreenState extends State<GameScreen> {
                 : _showSettings,
             color: const Color(0xFF1A237E),
           ),
+          IconButton(
+            icon: Icon(_isPencilMode ? Icons.edit : Icons.edit_outlined),
+            onPressed: (_isPaused || _isAnimating || _isCompleted)
+                ? null
+                : _togglePencilMode,
+            color: _isPencilMode ? const Color(0xFFFF9800) : const Color(0xFF1A237E),
+            iconSize: 26,
+          ),
           Expanded(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -556,14 +590,6 @@ class _GameScreenState extends State<GameScreen> {
             onPressed: (_isPaused || _isAnimating || _isCompleted)
                 ? null
                 : _showStrategyPicker,
-            color: const Color(0xFF1A237E),
-            iconSize: 26,
-          ),
-          IconButton(
-            icon: const Icon(Icons.share_outlined),
-            onPressed: (_isPaused || _isAnimating || _isCompleted)
-                ? null
-                : _exportGame,
             color: const Color(0xFF1A237E),
             iconSize: 26,
           ),
@@ -620,6 +646,20 @@ class _GameScreenState extends State<GameScreen> {
             ],
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildHintBannerPlaceholder() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: Container(
+        height: 60,
+        decoration: BoxDecoration(
+          color: const Color(0xFFF5F5F5),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: _hintMessage != null ? _buildHintBanner(_hintMessage!) : const SizedBox(),
       ),
     );
   }
