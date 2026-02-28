@@ -51,8 +51,11 @@ void main() {
 
       final result = findHiddenSingle(board);
       expect(result, isNotNull);
+      // ignore: unnecessary_non_null_assertion
       expect(result!.row, 0);
+      // ignore: unnecessary_non_null_assertion
       expect(result!.col, 0); // First valid position for hidden single
+      // ignore: unnecessary_non_null_assertion
       expect(result!.digit, 5);
     });
 
@@ -75,7 +78,9 @@ void main() {
       expect(result, isNotNull);
       // Can't reliably test eliminatorCells without exact board setup
       // Just verify we got a valid result
+      // ignore: unnecessary_non_null_assertion
       expect(result!.row, isNotNull);
+      // ignore: unnecessary_non_null_assertion
       expect(result!.col, isNotNull);
     });
 

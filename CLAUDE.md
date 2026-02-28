@@ -8,15 +8,20 @@ A Flutter/Dart Sudoku game targeting web (and mobile).
 sudoku/
 ├── lib/
 │   ├── main.dart                    # Entry point (SudokuApp)
+│   ├── app_settings.dart            # App-wide settings (theme, hints)
 │   ├── logic/
 │   │   ├── sudoku_generator.dart    # Puzzle generation
-│   │   └── strategy_solver.dart     # Hint strategies (pure Dart, no Flutter imports)
+│   │   ├── strategy_solver.dart     # Hint strategies (pure Dart, no Flutter imports)
+│   │   ├── game_state.dart          # Game state serialization (import/export)
+│   │   ├── web_export.dart          # Web-specific JSON download
+│   │   └── web_export_stub.dart     # Non-web stub
 │   ├── screens/
-│   │   ├── difficulty_screen.dart   # White bg, OutlinedButton per difficulty
+│   │   ├── difficulty_screen.dart   # Difficulty picker with import
 │   │   └── game_screen.dart         # Main game: timer, animation, input guards
 │   └── widgets/
 │       ├── sudoku_board.dart        # Stateless board; driven entirely by props
-│       └── number_pad.dart
+│       ├── number_pad.dart          # Number input pad
+│       └── settings_sheet.dart      # Bottom sheet for settings
 ├── test/
 │   ├── widget_test.dart
 │   └── logic/strategy_solver_test.dart

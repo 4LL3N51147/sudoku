@@ -1,6 +1,6 @@
 // Export helpers for web platform
 // This file is only imported when running on web
-
+// ignore: avoid_web_libraries_in_flutter, deprecated_member_use
 import 'dart:html' show AnchorElement, Blob, Url;
 
 void downloadJson(String jsonString, String filename) {

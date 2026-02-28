@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:sudoku/logic/sudoku_generator.dart';
 
-typedef _Move = ({int row, int col, int oldValue, int newValue});
+typedef Move = ({int row, int col, int oldValue, int newValue});
 
 class GameState {
   final int version;
@@ -13,7 +13,7 @@ class GameState {
   final List<List<bool>> isGiven;
   final List<List<bool>> isError;
   final List<List<Set<int>>> pencilMarks;
-  final List<_Move> undoStack;
+  final List<Move> undoStack;
   final DateTime savedAt;
 
   GameState({
@@ -116,7 +116,7 @@ class GameState {
         .toList();
   }
 
-  static List<Map<String, dynamic>> _parseUndoStack(List<_Move> stack) {
+  static List<Map<String, dynamic>> _parseUndoStack(List<Move> stack) {
     return stack
         .map((move) => {
               'row': move.row,
@@ -127,7 +127,7 @@ class GameState {
         .toList();
   }
 
-  static List<_Move> _parseUndoStackFromJson(List<dynamic> json) {
+  static List<Move> _parseUndoStackFromJson(List<dynamic> json) {
     return json
         .map((move) => (
               row: move['row'] as int,

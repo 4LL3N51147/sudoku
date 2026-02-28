@@ -98,31 +98,31 @@ class _DifficultyScreenState extends State<DifficultyScreen> {
                 style: TextStyle(fontSize: 16, color: Colors.black54),
               ),
               const Spacer(flex: 2),
-              _DifficultyButton(
+              const _DifficultyButton(
                 label: 'EASY',
                 subtitle: '46 given numbers',
-                color: const Color(0xFF43A047),
+                color: Color(0xFF43A047),
                 difficulty: Difficulty.easy,
               ),
               const SizedBox(height: 16),
-              _DifficultyButton(
+              const _DifficultyButton(
                 label: 'MEDIUM',
                 subtitle: '35 given numbers',
-                color: const Color(0xFFFB8C00),
+                color: Color(0xFFFB8C00),
                 difficulty: Difficulty.medium,
               ),
               const SizedBox(height: 16),
-              _DifficultyButton(
+              const _DifficultyButton(
                 label: 'HARD',
                 subtitle: '29 given numbers',
-                color: const Color(0xFFE53935),
+                color: Color(0xFFE53935),
                 difficulty: Difficulty.hard,
               ),
               const SizedBox(height: 16),
-              _DifficultyButton(
+              const _DifficultyButton(
                 label: 'MASTER',
                 subtitle: '25 given numbers',
-                color: const Color(0xFF7B1FA2),
+                color: Color(0xFF7B1FA2),
                 difficulty: Difficulty.master,
               ),
               const SizedBox(height: 24),
@@ -198,7 +198,7 @@ class _DifficultyButton extends StatelessWidget {
             ),
             Text(
               subtitle,
-              style: TextStyle(fontSize: 13, color: color.withOpacity(0.7)),
+              style: TextStyle(fontSize: 13, color: color.withValues(alpha: 0.7)),
             ),
           ],
         ),
