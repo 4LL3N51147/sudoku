@@ -495,7 +495,7 @@ class _GameScreenState extends State<GameScreen> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                if (_hintMessage != null) _buildHintBanner(_hintMessage!),
+                _buildHintBannerPlaceholder(),
                 const SizedBox(height: 8),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -654,6 +654,20 @@ class _GameScreenState extends State<GameScreen> {
             ],
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildHintBannerPlaceholder() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: Container(
+        height: 60,
+        decoration: BoxDecoration(
+          color: const Color(0xFFF5F5F5),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: _hintMessage != null ? _buildHintBanner(_hintMessage!) : const SizedBox(),
       ),
     );
   }
