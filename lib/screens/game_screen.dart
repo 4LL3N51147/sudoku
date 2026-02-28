@@ -594,14 +594,6 @@ class _GameScreenState extends State<GameScreen> {
             iconSize: 26,
           ),
           IconButton(
-            icon: const Icon(Icons.share_outlined),
-            onPressed: (_isPaused || _isAnimating || _isCompleted)
-                ? null
-                : _exportGame,
-            color: const Color(0xFF1A237E),
-            iconSize: 26,
-          ),
-          IconButton(
             icon: Icon(_isPaused ? Icons.play_arrow_rounded : Icons.pause_rounded),
             onPressed: _isAnimating ? null : _togglePause,
             color: const Color(0xFF1A237E),
