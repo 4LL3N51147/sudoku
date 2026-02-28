@@ -182,30 +182,33 @@ class SudokuBoard extends StatelessWidget {
                       ),
                     ),
             ),
-            // Pencil marks (show in top-left corner when cell is empty)
+            // Pencil marks (show in 3x3 grid when cell is empty)
             if (value == 0 && pencilMarks.isNotEmpty && pencilMarks[row][col].isNotEmpty)
-              Positioned(
-                top: 1,
-                left: 2,
-                child: SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: Wrap(
-                    spacing: 0,
-                    runSpacing: 0,
+              Positioned.fill(
+                child: Padding(
+                  padding: const EdgeInsets.all(2),
+                  child: Column(
                     children: [
-                      for (int i = 1; i <= 9; i++)
-                        SizedBox(
-                          width: 6,
-                          height: 6,
-                          child: Text(
-                            '$i',
-                            style: TextStyle(
-                              fontSize: 6,
-                              color: pencilMarks[row][col].contains(i)
-                                  ? Colors.grey[600]
-                                  : Colors.transparent,
-                            ),
+                      for (int r = 0; r < 3; r++)
+                        Expanded(
+                          child: Row(
+                            children: [
+                              for (int c = 0; c < 3; c++)
+                                Expanded(
+                                  child: Center(
+                                    child: Text(
+                                      '${r * 3 + c + 1}',
+                                      style: TextStyle(
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.w500,
+                                        color: pencilMarks[row][col].contains(r * 3 + c + 1)
+                                            ? Colors.grey[700]
+                                            : Colors.transparent,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
                         ),
                     ],
