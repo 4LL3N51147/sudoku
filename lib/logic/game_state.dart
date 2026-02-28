@@ -12,6 +12,7 @@ class GameState {
   final List<List<int>> solution;
   final List<List<bool>> isGiven;
   final List<List<bool>> isError;
+  final List<List<Set<int>>> pencilMarks;
   final List<_Move> undoStack;
   final DateTime savedAt;
 
@@ -23,6 +24,7 @@ class GameState {
     required this.solution,
     required this.isGiven,
     required this.isError,
+    this.pencilMarks = const [],
     required this.undoStack,
     required this.savedAt,
   });
@@ -36,6 +38,9 @@ class GameState {
       'solution': _parseBoard(solution),
       'isGiven': _parseBoolBoard(isGiven),
       'isError': _parseBoolBoard(isError),
+      'pencilMarks': pencilMarks.map((row) =>
+        row.map((cell) => cell.toList()).toList()
+      ).toList(),
       'undoStack': _parseUndoStack(undoStack),
       'savedAt': savedAt.toIso8601String(),
     };
@@ -61,6 +66,7 @@ class GameState {
       solution: _parseBoardFromJson(json['solution'] as List),
       isGiven: _parseBoolBoardFromJson(json['isGiven'] as List),
       isError: _parseBoolBoardFromJson(json['isError'] as List),
+      pencilMarks: _parsePencilMarksFromJson(json['pencilMarks'] as List?),
       undoStack: _parseUndoStackFromJson(json['undoStack'] as List),
       savedAt: DateTime.parse(json['savedAt'] as String),
     );
@@ -130,6 +136,17 @@ class GameState {
               newValue: move['newValue'] as int,
             ))
         .toList();
+  }
+
+  static List<List<Set<int>>> _parsePencilMarksFromJson(List<dynamic>? json) {
+    if (json == null) {
+      return List.generate(9, (_) => List.generate(9, (_) => <int>{}));
+    }
+    return json.map((row) =>
+      (row as List<dynamic>).map((cell) =>
+        (cell as List<dynamic>).map((e) => e as int).toSet()
+      ).toList()
+    ).toList();
   }
 
   String toJsonString() {
