@@ -46,6 +46,11 @@ class _GameScreenState extends State<GameScreen> {
   String? _hintMessage;
   int? _hintPhase; // null = no hint, 0 = scan, 1 = elimination, 2 = target
   HiddenSingleResult? _currentHintResult;
+  NakedSingleResult? _currentNakedSingleResult;
+  NakedPairResult? _currentNakedPairResult;
+  NakedTripleResult? _currentNakedTripleResult;
+  NakedQuadResult? _currentNakedQuadResult;
+  HiddenPairResult? _currentHiddenPairResult;
   final List<_Move> _undoStack = [];
   AppSettings _settings = const AppSettings();
   late final FocusNode _focusNode;
@@ -304,10 +309,427 @@ class _GameScreenState extends State<GameScreen> {
     });
   }
 
+  Future<void> _runNakedSingleHint() async {
+    final result = findNakedSingle(_board, _pencilMarks);
+    if (result == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No naked singles on this board.')),
+      );
+      return;
+    }
+
+    _currentNakedSingleResult = result;
+
+    // Phase 0 — scan: highlight the cell with only one candidate
+    setState(() {
+      _isAnimating = true;
+      _hintPhase = 0;
+      _hintMessage = 'This cell has only one possible candidate: ${result.digit}';
+      _strategyHighlight = StrategyHighlight(
+        phase: StrategyPhase.scan,
+        unitCells: result.unitCells,
+        unitType: result.unitType,
+      );
+    });
+  }
+
+  Future<void> _runNakedPairHint() async {
+    final result = findNakedPair(_board, _pencilMarks);
+    if (result == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No naked pairs on this board.')),
+      );
+      return;
+    }
+
+    _currentNakedPairResult = result;
+
+    // Phase 0 — scan: highlight the unit being scanned
+    setState(() {
+      _isAnimating = true;
+      _hintPhase = 0;
+      _hintMessage = 'Scanning this ${_unitLabel(result.unitType)} for matching pairs';
+      _strategyHighlight = StrategyHighlight(
+        phase: StrategyPhase.scan,
+        unitCells: result.unitCells,
+        unitType: result.unitType,
+      );
+    });
+  }
+
+  Future<void> _runHiddenPairHint() async {
+    final result = findHiddenPair(_board, _pencilMarks);
+    if (result == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No hidden pairs on this board.')),
+      );
+      return;
+    }
+
+    _currentHiddenPairResult = result;
+
+    // Phase 0 — scan: highlight the unit being scanned
+    setState(() {
+      _isAnimating = true;
+      _hintPhase = 0;
+      _hintMessage = 'Scanning this ${_unitLabel(result.unitType)} for hidden pairs';
+      _strategyHighlight = StrategyHighlight(
+        phase: StrategyPhase.scan,
+        unitCells: result.unitCells,
+        unitType: result.unitType,
+      );
+    });
+  }
+
+  Future<void> _runNakedTripleHint() async {
+    final result = findNakedTriple(_board, _pencilMarks);
+    if (result == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No naked triples on this board.')),
+      );
+      return;
+    }
+
+    _currentNakedTripleResult = result;
+
+    // Phase 0 — scan: highlight the unit being scanned
+    setState(() {
+      _isAnimating = true;
+      _hintPhase = 0;
+      _hintMessage = 'Scanning this ${_unitLabel(result.unitType)} for naked triples';
+      _strategyHighlight = StrategyHighlight(
+        phase: StrategyPhase.scan,
+        unitCells: result.unitCells,
+        unitType: result.unitType,
+      );
+    });
+  }
+
+  Future<void> _runNakedQuadHint() async {
+    final result = findNakedQuad(_board, _pencilMarks);
+    if (result == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No naked quads on this board.')),
+      );
+      return;
+    }
+
+    _currentNakedQuadResult = result;
+
+    // Phase 0 — scan: highlight the unit being scanned
+    setState(() {
+      _isAnimating = true;
+      _hintPhase = 0;
+      _hintMessage = 'Scanning this ${_unitLabel(result.unitType)} for naked quads';
+      _strategyHighlight = StrategyHighlight(
+        phase: StrategyPhase.scan,
+        unitCells: result.unitCells,
+        unitType: result.unitType,
+      );
+    });
+  }
+
+  String _unitLabel(UnitType unitType) {
+    return switch (unitType) {
+      UnitType.row => 'row',
+      UnitType.column => 'column',
+      UnitType.box => 'box',
+    };
+  }
+
   void _advanceHintPhase() {
     if (_hintPhase == null) return; // no hint active
     if (_isPaused || _isCompleted) return;
 
+    // Check for Naked Single first
+    final nakedSingleResult = _currentNakedSingleResult;
+    if (nakedSingleResult != null) {
+      if (_hintPhase! < 2) {
+        // Advance to next phase
+        setState(() {
+          _hintPhase = _hintPhase! + 1;
+
+          if (_hintPhase == 1) {
+            // Elimination phase
+            _hintMessage = 'This cell can only contain ${nakedSingleResult.digit}';
+            _strategyHighlight = StrategyHighlight(
+              phase: StrategyPhase.elimination,
+              unitCells: nakedSingleResult.unitCells,
+              eliminatorCells: nakedSingleResult.eliminatorCells,
+              unitType: nakedSingleResult.unitType,
+            );
+          } else if (_hintPhase == 2) {
+            // Target phase
+            _hintMessage = 'Placing ${nakedSingleResult.digit} in this cell!';
+            _strategyHighlight = StrategyHighlight(
+              phase: StrategyPhase.target,
+              unitCells: nakedSingleResult.unitCells,
+              eliminatorCells: nakedSingleResult.eliminatorCells,
+              targetCell: (nakedSingleResult.row, nakedSingleResult.col),
+              unitType: nakedSingleResult.unitType,
+            );
+          }
+        });
+      } else {
+        // Phase 2 complete - fill the cell
+        setState(() {
+          final oldValue = _board[nakedSingleResult.row][nakedSingleResult.col];
+          _undoStack.add((
+            row: nakedSingleResult.row,
+            col: nakedSingleResult.col,
+            oldValue: oldValue,
+            newValue: nakedSingleResult.digit,
+          ));
+          _board[nakedSingleResult.row][nakedSingleResult.col] = nakedSingleResult.digit;
+          _pencilMarks[nakedSingleResult.row][nakedSingleResult.col].clear();
+          _updateErrors();
+          _strategyHighlight = null;
+          _hintMessage = null;
+          _hintPhase = null;
+          _currentNakedSingleResult = null;
+          _isAnimating = false;
+          _selectedRow = nakedSingleResult.row;
+          _selectedCol = nakedSingleResult.col;
+          if (_checkWin()) {
+            _isCompleted = true;
+            _timer?.cancel();
+          }
+        });
+        if (_isCompleted) _showWinDialog();
+      }
+      return;
+    }
+
+    // Check for Naked Pair
+    final nakedPairResult = _currentNakedPairResult;
+    if (nakedPairResult != null) {
+      final digitsStr = nakedPairResult.digits.toList().join(' and ');
+      if (_hintPhase! < 2) {
+        // Advance to next phase
+        setState(() {
+          _hintPhase = _hintPhase! + 1;
+
+          if (_hintPhase == 1) {
+            // Pair cells phase - highlight the pair
+            _hintMessage = 'Found a naked pair: cells containing $digitsStr';
+            _strategyHighlight = StrategyHighlight(
+              phase: StrategyPhase.elimination,
+              unitCells: nakedPairResult.unitCells,
+              eliminatorCells: nakedPairResult.pairCells,
+              unitType: nakedPairResult.unitType,
+            );
+          } else if (_hintPhase == 2) {
+            // Eliminator phase - highlight cells where candidates will be removed
+            if (nakedPairResult.eliminatorCells.isEmpty) {
+              // No eliminations - just finish
+              _strategyHighlight = null;
+              _hintMessage = 'No candidates to remove from other cells';
+              _hintPhase = null;
+              _currentNakedPairResult = null;
+              _isAnimating = false;
+              return;
+            }
+            _hintMessage = 'Removing $digitsStr from highlighted cells';
+            _strategyHighlight = StrategyHighlight(
+              phase: StrategyPhase.target,
+              unitCells: nakedPairResult.unitCells,
+              eliminatorCells: nakedPairResult.eliminatorCells,
+              unitType: nakedPairResult.unitType,
+            );
+          }
+        });
+      } else {
+        // Phase 2 complete - remove digits from eliminators
+        setState(() {
+          for (final (er, ec) in nakedPairResult.eliminatorCells) {
+            for (final d in nakedPairResult.digits) {
+              _pencilMarks[er][ec].remove(d);
+            }
+          }
+          _strategyHighlight = null;
+          _hintMessage = null;
+          _hintPhase = null;
+          _currentNakedPairResult = null;
+          _isAnimating = false;
+        });
+      }
+      return;
+    }
+
+    // Check for Naked Triple
+    final nakedTripleResult = _currentNakedTripleResult;
+    if (nakedTripleResult != null) {
+      final digitsStr = nakedTripleResult.digits.toList().join(', ');
+      if (_hintPhase! < 2) {
+        // Advance to next phase
+        setState(() {
+          _hintPhase = _hintPhase! + 1;
+
+          if (_hintPhase == 1) {
+            // Triple cells phase - highlight the triple
+            _hintMessage = 'Found a naked triple: cells containing {$digitsStr}';
+            _strategyHighlight = StrategyHighlight(
+              phase: StrategyPhase.elimination,
+              unitCells: nakedTripleResult.unitCells,
+              eliminatorCells: nakedTripleResult.tripleCells,
+              unitType: nakedTripleResult.unitType,
+            );
+          } else if (_hintPhase == 2) {
+            // Eliminator phase - highlight cells where candidates will be removed
+            if (nakedTripleResult.eliminatorCells.isEmpty) {
+              // No eliminations - just finish
+              _strategyHighlight = null;
+              _hintMessage = 'No candidates to remove from other cells';
+              _hintPhase = null;
+              _currentNakedTripleResult = null;
+              _isAnimating = false;
+              return;
+            }
+            _hintMessage = 'Removing {$digitsStr} from highlighted cells';
+            _strategyHighlight = StrategyHighlight(
+              phase: StrategyPhase.target,
+              unitCells: nakedTripleResult.unitCells,
+              eliminatorCells: nakedTripleResult.eliminatorCells,
+              unitType: nakedTripleResult.unitType,
+            );
+          }
+        });
+      } else {
+        // Phase 2 complete - remove digits from eliminators
+        setState(() {
+          for (final (er, ec) in nakedTripleResult.eliminatorCells) {
+            for (final d in nakedTripleResult.digits) {
+              _pencilMarks[er][ec].remove(d);
+            }
+          }
+          _strategyHighlight = null;
+          _hintMessage = null;
+          _hintPhase = null;
+          _currentNakedTripleResult = null;
+          _isAnimating = false;
+        });
+      }
+      return;
+    }
+
+    // Check for Naked Quad
+    final nakedQuadResult = _currentNakedQuadResult;
+    if (nakedQuadResult != null) {
+      final digitsStr = nakedQuadResult.digits.toList().join(', ');
+      if (_hintPhase! < 2) {
+        // Advance to next phase
+        setState(() {
+          _hintPhase = _hintPhase! + 1;
+
+          if (_hintPhase == 1) {
+            // Quad cells phase - highlight the quad
+            _hintMessage = 'Found a naked quad: cells containing {$digitsStr}';
+            _strategyHighlight = StrategyHighlight(
+              phase: StrategyPhase.elimination,
+              unitCells: nakedQuadResult.unitCells,
+              eliminatorCells: nakedQuadResult.quadCells,
+              unitType: nakedQuadResult.unitType,
+            );
+          } else if (_hintPhase == 2) {
+            // Eliminator phase - highlight cells where candidates will be removed
+            if (nakedQuadResult.eliminatorCells.isEmpty) {
+              // No eliminations - just finish
+              _strategyHighlight = null;
+              _hintMessage = 'No candidates to remove from other cells';
+              _hintPhase = null;
+              _currentNakedQuadResult = null;
+              _isAnimating = false;
+              return;
+            }
+            _hintMessage = 'Removing {$digitsStr} from highlighted cells';
+            _strategyHighlight = StrategyHighlight(
+              phase: StrategyPhase.target,
+              unitCells: nakedQuadResult.unitCells,
+              eliminatorCells: nakedQuadResult.eliminatorCells,
+              unitType: nakedQuadResult.unitType,
+            );
+          }
+        });
+      } else {
+        // Phase 2 complete - remove digits from eliminators
+        setState(() {
+          for (final (er, ec) in nakedQuadResult.eliminatorCells) {
+            for (final d in nakedQuadResult.digits) {
+              _pencilMarks[er][ec].remove(d);
+            }
+          }
+          _strategyHighlight = null;
+          _hintMessage = null;
+          _hintPhase = null;
+          _currentNakedQuadResult = null;
+          _isAnimating = false;
+        });
+      }
+      return;
+    }
+
+    // Check for Hidden Pair
+    final hiddenPairResult = _currentHiddenPairResult;
+    if (hiddenPairResult != null) {
+      final digitsStr = hiddenPairResult.digits.toList().join(' and ');
+      if (_hintPhase! < 2) {
+        // Advance to next phase
+        setState(() {
+          _hintPhase = _hintPhase! + 1;
+
+          if (_hintPhase == 1) {
+            // Pair cells phase - highlight the pair cells
+            _hintMessage = 'Found a hidden pair: digits $digitsStr only appear in these two cells';
+            _strategyHighlight = StrategyHighlight(
+              phase: StrategyPhase.elimination,
+              unitCells: hiddenPairResult.unitCells,
+              eliminatorCells: hiddenPairResult.pairCells,
+              unitType: hiddenPairResult.unitType,
+            );
+          } else if (_hintPhase == 2) {
+            // Eliminator phase - highlight cells where candidates will be removed
+            if (hiddenPairResult.eliminatorCells.isEmpty) {
+              // No eliminations - just finish
+              _strategyHighlight = null;
+              _hintMessage = 'No candidates to remove from other cells';
+              _hintPhase = null;
+              _currentHiddenPairResult = null;
+              _isAnimating = false;
+              return;
+            }
+            _hintMessage = 'Removing $digitsStr from highlighted cells';
+            _strategyHighlight = StrategyHighlight(
+              phase: StrategyPhase.target,
+              unitCells: hiddenPairResult.unitCells,
+              eliminatorCells: hiddenPairResult.eliminatorCells,
+              unitType: hiddenPairResult.unitType,
+            );
+          }
+        });
+      } else {
+        // Phase 2 complete - remove digits from eliminators
+        setState(() {
+          for (final (er, ec) in hiddenPairResult.eliminatorCells) {
+            for (final d in hiddenPairResult.digits) {
+              _pencilMarks[er][ec].remove(d);
+            }
+          }
+          _strategyHighlight = null;
+          _hintMessage = null;
+          _hintPhase = null;
+          _currentHiddenPairResult = null;
+          _isAnimating = false;
+        });
+      }
+      return;
+    }
+
+    // Handle Hidden Single (existing code)
     final result = _currentHintResult;
     if (result == null) return;
 
@@ -391,6 +813,66 @@ class _GameScreenState extends State<GameScreen> {
               ),
             ),
             const Divider(),
+            ListTile(
+              leading: const Icon(Icons.looks_one,
+                  color: Color(0xFF1A237E)),
+              title: const Text('Naked Single'),
+              subtitle: const Text(
+                'Find a cell with only one possible candidate (requires pencil marks)',
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                unawaited(_runNakedSingleHint());
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.looks_two,
+                  color: Color(0xFF1A237E)),
+              title: const Text('Naked Pair'),
+              subtitle: const Text(
+                'Find two cells in same unit with exactly the same two candidates (requires pencil marks)',
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                unawaited(_runNakedPairHint());
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.looks_3,
+                  color: Color(0xFF1A237E)),
+              title: const Text('Hidden Pair'),
+              subtitle: const Text(
+                'Find two digits that only appear in exactly two cells in a unit (requires pencil marks)',
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                unawaited(_runHiddenPairHint());
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.looks_4,
+                  color: Color(0xFF1A237E)),
+              title: const Text('Naked Triple'),
+              subtitle: const Text(
+                'Find three cells in same unit where the union of candidates is exactly three digits (requires pencil marks)',
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                unawaited(_runNakedTripleHint());
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.looks_5,
+                  color: Color(0xFF1A237E)),
+              title: const Text('Naked Quad'),
+              subtitle: const Text(
+                'Find four cells in same unit where the union of candidates is exactly four digits (requires pencil marks)',
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                unawaited(_runNakedQuadHint());
+              },
+            ),
             ListTile(
               leading: const Icon(Icons.lightbulb_outline,
                   color: Color(0xFF1A237E)),
