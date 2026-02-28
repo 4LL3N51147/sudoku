@@ -186,7 +186,7 @@ class SudokuBoard extends StatelessWidget {
             if (value == 0 && pencilMarks.isNotEmpty && pencilMarks[row][col].isNotEmpty)
               Positioned.fill(
                 child: Padding(
-                  padding: const EdgeInsets.all(2),
+                  padding: const EdgeInsets.all(1),
                   child: Column(
                     children: [
                       for (int r = 0; r < 3; r++)
@@ -199,7 +199,7 @@ class SudokuBoard extends StatelessWidget {
                                     child: Text(
                                       '${r * 3 + c + 1}',
                                       style: TextStyle(
-                                        fontSize: 9,
+                                        fontSize: 12,
                                         fontWeight: FontWeight.w500,
                                         color: pencilMarks[row][col].contains(r * 3 + c + 1)
                                             ? Colors.grey[700]
