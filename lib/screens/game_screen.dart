@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../logic/sudoku_generator.dart';
 import '../logic/strategy_solver.dart';
 import '../logic/game_state.dart';
@@ -47,10 +48,12 @@ class _GameScreenState extends State<GameScreen> {
   HiddenSingleResult? _currentHintResult;
   final List<_Move> _undoStack = [];
   AppSettings _settings = const AppSettings();
+  late final FocusNode _focusNode;
 
   @override
   void initState() {
     super.initState();
+    _focusNode = FocusNode();
     _newGame();
     _loadSettings();
   }
@@ -63,6 +66,7 @@ class _GameScreenState extends State<GameScreen> {
   @override
   void dispose() {
     _timer?.cancel();
+    _focusNode.dispose();
     super.dispose();
   }
 
@@ -466,51 +470,157 @@ class _GameScreenState extends State<GameScreen> {
     }
   }
 
+  void _handleKeyEvent(KeyEvent event) {
+    if (event is! KeyDownEvent) return;
+    if (_isAnimating) return;
+
+    final key = event.logicalKey;
+
+    // Number keys 1-9 (digit row)
+    if (key == LogicalKeyboardKey.digit1 ||
+        key == LogicalKeyboardKey.digit2 ||
+        key == LogicalKeyboardKey.digit3 ||
+        key == LogicalKeyboardKey.digit4 ||
+        key == LogicalKeyboardKey.digit5 ||
+        key == LogicalKeyboardKey.digit6 ||
+        key == LogicalKeyboardKey.digit7 ||
+        key == LogicalKeyboardKey.digit8 ||
+        key == LogicalKeyboardKey.digit9) {
+      final num = switch (key) {
+        LogicalKeyboardKey.digit1 => 1,
+        LogicalKeyboardKey.digit2 => 2,
+        LogicalKeyboardKey.digit3 => 3,
+        LogicalKeyboardKey.digit4 => 4,
+        LogicalKeyboardKey.digit5 => 5,
+        LogicalKeyboardKey.digit6 => 6,
+        LogicalKeyboardKey.digit7 => 7,
+        LogicalKeyboardKey.digit8 => 8,
+        LogicalKeyboardKey.digit9 => 9,
+        _ => 0,
+      };
+      _onNumberInput(num);
+      return;
+    }
+
+    // Numpad keys 1-9
+    if (key == LogicalKeyboardKey.numpad1 ||
+        key == LogicalKeyboardKey.numpad2 ||
+        key == LogicalKeyboardKey.numpad3 ||
+        key == LogicalKeyboardKey.numpad4 ||
+        key == LogicalKeyboardKey.numpad5 ||
+        key == LogicalKeyboardKey.numpad6 ||
+        key == LogicalKeyboardKey.numpad7 ||
+        key == LogicalKeyboardKey.numpad8 ||
+        key == LogicalKeyboardKey.numpad9) {
+      final num = switch (key) {
+        LogicalKeyboardKey.numpad1 => 1,
+        LogicalKeyboardKey.numpad2 => 2,
+        LogicalKeyboardKey.numpad3 => 3,
+        LogicalKeyboardKey.numpad4 => 4,
+        LogicalKeyboardKey.numpad5 => 5,
+        LogicalKeyboardKey.numpad6 => 6,
+        LogicalKeyboardKey.numpad7 => 7,
+        LogicalKeyboardKey.numpad8 => 8,
+        LogicalKeyboardKey.numpad9 => 9,
+        _ => 0,
+      };
+      _onNumberInput(num);
+      return;
+    }
+
+    // Erase: Backspace or Delete
+    if (key == LogicalKeyboardKey.backspace || key == LogicalKeyboardKey.delete) {
+      _onErase();
+      return;
+    }
+
+    // Shortcuts
+    final isCtrlPressed = HardwareKeyboard.instance.isControlPressed;
+
+    // Ctrl+Z: Undo
+    if (isCtrlPressed && key == LogicalKeyboardKey.keyZ) {
+      _undo();
+      return;
+    }
+
+    // P: Pencil mode toggle
+    if (key == LogicalKeyboardKey.keyP && !isCtrlPressed) {
+      _togglePencilMode();
+      return;
+    }
+
+    // H: Hint
+    if (key == LogicalKeyboardKey.keyH && !isCtrlPressed) {
+      _runHiddenSingleHint();
+      return;
+    }
+
+    // Space: Pause
+    if (key == LogicalKeyboardKey.space && !isCtrlPressed) {
+      _togglePause();
+      return;
+    }
+
+    // Ctrl+S: Export
+    if (isCtrlPressed && key == LogicalKeyboardKey.keyS) {
+      _exportGame();
+      return;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
-      body: SafeArea(
-        child: Stack(
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+    return Focus(
+      focusNode: _focusNode,
+      autofocus: true,
+      child: KeyboardListener(
+        focusNode: _focusNode,
+        onKeyEvent: _handleKeyEvent,
+        child: Scaffold(
+          backgroundColor: const Color(0xFFF5F5F5),
+          body: SafeArea(
+            child: Stack(
               children: [
-                _buildHeader(),
-                const SizedBox(height: 12),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: Center(
-                      child: SudokuBoard(
-                        board: _board,
-                        isGiven: _isGiven,
-                        isError: _isError,
-                        selectedRow: _selectedRow,
-                        selectedCol: _selectedCol,
-                        isPaused: _isPaused,
-                        onCellTap: _onCellTap,
-                        strategyHighlight: _strategyHighlight,
-                        pencilMarks: _pencilMarks,
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildHeader(),
+                    const SizedBox(height: 12),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: Center(
+                          child: SudokuBoard(
+                            board: _board,
+                            isGiven: _isGiven,
+                            isError: _isError,
+                            selectedRow: _selectedRow,
+                            selectedCol: _selectedCol,
+                            isPaused: _isPaused,
+                            onCellTap: _onCellTap,
+                            strategyHighlight: _strategyHighlight,
+                            pencilMarks: _pencilMarks,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
+                    const SizedBox(height: 8),
+                    _buildHintBannerPlaceholder(),
+                    const SizedBox(height: 8),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: NumberPad(
+                        onNumber: _onNumberInput,
+                        onErase: _onErase,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
                 ),
-                const SizedBox(height: 8),
-                _buildHintBannerPlaceholder(),
-                const SizedBox(height: 8),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: NumberPad(
-                    onNumber: _onNumberInput,
-                    onErase: _onErase,
-                  ),
-                ),
-                const SizedBox(height: 12),
+                if (_isPaused) _buildPauseOverlay(),
               ],
             ),
-            if (_isPaused) _buildPauseOverlay(),
-          ],
+          ),
         ),
       ),
     );
