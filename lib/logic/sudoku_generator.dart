@@ -1,6 +1,6 @@
 import 'dart:math';
 
-enum Difficulty { easy, medium, hard }
+enum Difficulty { easy, medium, hard, master }
 
 class GeneratorResult {
   final List<List<int>> puzzle;
@@ -26,6 +26,8 @@ class SudokuGenerator {
         return 46; // 35 given
       case Difficulty.hard:
         return 52; // 29 given
+      case Difficulty.master:
+        return 56; // 25 given
     }
   }
 

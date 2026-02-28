@@ -461,6 +461,8 @@ class _GameScreenState extends State<GameScreen> {
         return 'Medium';
       case Difficulty.hard:
         return 'Hard';
+      case Difficulty.master:
+        return 'Master';
     }
   }
 

@@ -118,6 +118,13 @@ class _DifficultyScreenState extends State<DifficultyScreen> {
                 color: const Color(0xFFE53935),
                 difficulty: Difficulty.hard,
               ),
+              const SizedBox(height: 16),
+              _DifficultyButton(
+                label: 'MASTER',
+                subtitle: '25 given numbers',
+                color: const Color(0xFF7B1FA2),
+                difficulty: Difficulty.master,
+              ),
               const SizedBox(height: 24),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 40),
