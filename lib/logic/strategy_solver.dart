@@ -115,6 +115,8 @@ class StrategySolver {
     if (result != null) return result;
     result = findNakedPair();
     if (result != null) return result;
+    result = findHiddenPair();
+    if (result != null) return result;
     return null;
   }
 
@@ -272,6 +274,91 @@ class StrategySolver {
             patternDigits: pairDigits,
             eliminationCells: eliminationCells,
           );
+        }
+      }
+    }
+    return null;
+  }
+
+  /// Find hidden pairs in the board
+  StrategyResult? findHiddenPair() {
+    // Check rows
+    for (int r = 0; r < 9; r++) {
+      final cells = {for (int c = 0; c < 9; c++) (r, c)};
+      final result = _checkUnitForHiddenPair(cells, UnitType.row);
+      if (result != null) return result;
+    }
+    // Check columns
+    for (int c = 0; c < 9; c++) {
+      final cells = {for (int r = 0; r < 9; r++) (r, c)};
+      final result = _checkUnitForHiddenPair(cells, UnitType.column);
+      if (result != null) return result;
+    }
+    // Check boxes
+    for (int br = 0; br < 3; br++) {
+      for (int bc = 0; bc < 3; bc++) {
+        final cells = {
+          for (int r = br * 3; r < br * 3 + 3; r++)
+            for (int c = bc * 3; c < bc * 3 + 3; c++) (r, c),
+        };
+        final result = _checkUnitForHiddenPair(cells, UnitType.box);
+        if (result != null) return result;
+      }
+    }
+    return null;
+  }
+
+  /// Check a unit for hidden pairs
+  StrategyResult? _checkUnitForHiddenPair(
+      Set<(int, int)> unitCells, UnitType unitType) {
+    final emptyCells = unitCells
+        .where((rc) => candidates[rc] != null && candidates[rc]!.isNotEmpty)
+        .toList();
+
+    // Build digit -> cells mapping
+    final digitToCells = <int, List<(int, int)>>{};
+    for (final cell in emptyCells) {
+      for (final d in candidates[cell]!) {
+        digitToCells.putIfAbsent(d, () => []).add(cell);
+      }
+    }
+
+    // Find all digit pairs
+    final digits = digitToCells.keys.toList();
+    for (int i = 0; i < digits.length; i++) {
+      for (int j = i + 1; j < digits.length; j++) {
+        final d1 = digits[i];
+        final d2 = digits[j];
+        final cells1 = digitToCells[d1]!;
+        final cells2 = digitToCells[d2]!;
+
+        // Both digits appear in exactly the same 2 cells
+        if (cells1.length == 2 && cells2.length == 2) {
+          final pairCells = cells1.toSet();
+          if (pairCells.length == 2 && cells2.toSet().length == 2) {
+            // Found hidden pair - eliminate other digits from these cells
+            final eliminationCells = <(int, int)>{};
+            for (final cell in emptyCells) {
+              if (!pairCells.contains(cell)) {
+                final cellCand = candidates[cell]!;
+                if (cellCand.contains(d1) || cellCand.contains(d2)) {
+                  eliminationCells.add(cell);
+                }
+              }
+            }
+
+            if (eliminationCells.isNotEmpty) {
+              return StrategyResult(
+                type: StrategyType.hiddenPair,
+                phase: StrategyPhase.elimination,
+                unitType: unitType,
+                unitCells: unitCells,
+                patternCells: pairCells,
+                patternDigits: {d1, d2},
+                eliminationCells: eliminationCells,
+              );
+            }
+          }
         }
       }
     }
