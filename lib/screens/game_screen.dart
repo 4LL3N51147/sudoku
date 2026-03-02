@@ -44,6 +44,7 @@ class _GameScreenState extends State<GameScreen> {
   int? _hintPhase; // null = no hint, 0 = scan, 1 = elimination, 2 = target
   HiddenSingleResult? _currentHintResult;
   StrategyResult? _currentStrategyResult;
+  Map<(int, int), Set<int>> _candidates = {};
   final List<_Move> _undoStack = [];
   AppSettings _settings = const AppSettings();
 
@@ -565,6 +566,13 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Future<void> _runStrategyHint(StrategyType type) async {
+    // For non-HiddenSingle strategies, compute candidates first
+    if (type != StrategyType.hiddenSingle) {
+      setState(() {
+        _candidates = computeCandidates(_board);
+      });
+    }
+
     final solver = StrategySolver(_board);
     final result = switch (type) {
       StrategyType.hiddenSingle => solver.findHiddenSingle(),
@@ -596,6 +604,17 @@ class _GameScreenState extends State<GameScreen> {
             UnitType.box => 'box',
           }
         : 'board';
+
+    // For non-HiddenSingle, show candidates phase first
+    if (type != StrategyType.hiddenSingle) {
+      setState(() {
+        _isAnimating = true;
+        _hintPhase = -1; // Special phase for showing candidates
+        _hintMessage = 'Computing candidates for all cells...';
+      });
+      // Short delay then proceed to scan phase
+      await Future.delayed(const Duration(milliseconds: 800));
+    }
 
     // Phase 0 — scan: highlight the unit
     setState(() {
@@ -709,6 +728,7 @@ class _GameScreenState extends State<GameScreen> {
               isPaused: _isPaused,
               onCellTap: _onCellTap,
               strategyHighlight: _strategyHighlight,
+              candidates: _candidates,
             ),
           ),
         ),
@@ -746,6 +766,7 @@ class _GameScreenState extends State<GameScreen> {
                 isPaused: _isPaused,
                 onCellTap: _onCellTap,
                 strategyHighlight: _strategyHighlight,
+                candidates: _candidates,
               ),
             ),
           ),

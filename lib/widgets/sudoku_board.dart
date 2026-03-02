@@ -10,6 +10,7 @@ class SudokuBoard extends StatelessWidget {
   final bool isPaused;
   final void Function(int row, int col) onCellTap;
   final StrategyHighlight? strategyHighlight;
+  final Map<(int, int), Set<int>>? candidates;
 
   const SudokuBoard({
     super.key,
@@ -21,6 +22,7 @@ class SudokuBoard extends StatelessWidget {
     required this.isPaused,
     required this.onCellTap,
     this.strategyHighlight,
+    this.candidates,
   });
 
   bool _isHighlighted(int row, int col) {
@@ -166,7 +168,7 @@ class SudokuBoard extends StatelessWidget {
         ),
         child: Center(
           child: value == 0
-              ? null
+              ? _buildCandidates(row, col)
               : Text(
                   '$value',
                   style: TextStyle(
@@ -179,5 +181,63 @@ class SudokuBoard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Widget? _buildCandidates(int row, int col) {
+    final cellCandidates = candidates?[(row, col)];
+    if (cellCandidates == null || cellCandidates.isEmpty) {
+      return null;
+    }
+
+    return GridView.count(
+      crossAxisCount: 3,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      children: List.generate(9, (index) {
+        final digit = index + 1;
+        final hasCandidate = cellCandidates.contains(digit);
+        final isEliminated = _isEliminated(row, col, digit);
+
+        return Center(
+          child: Text(
+            '$digit',
+            style: TextStyle(
+              fontSize: 9,
+              color: isEliminated
+                  ? Colors.grey.shade300
+                  : (hasCandidate ? Colors.blue.shade700 : Colors.transparent),
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
+  bool _isEliminated(int row, int col, int digit) {
+    final sh = strategyHighlight;
+    if (sh == null || sh.phase != StrategyPhase.elimination) {
+      return false;
+    }
+
+    // Check if this digit is eliminated in this cell
+    final unitCells = sh.unitCells;
+    final eliminatorCells = sh.eliminatorCells;
+
+    // If this cell is in the elimination unit and is not itself an eliminator
+    if (!unitCells.contains((row, col)) || eliminatorCells.contains((row, col))) {
+      return false;
+    }
+
+    // Check if any eliminator cell has this digit
+    for (final ec in eliminatorCells) {
+      final r = ec.$1;
+      final c = ec.$2;
+      // Check if board[r][c] has the digit
+      if (board[r][c] == digit) {
+        return true; // This digit is eliminated by the eliminator cells
+      }
+    }
+
+    return false;
   }
 }
