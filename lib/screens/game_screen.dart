@@ -511,47 +511,100 @@ class _GameScreenState extends State<GameScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       body: SafeArea(
-        child: Stack(
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isWide = constraints.maxWidth > 600;
+            return Stack(
               children: [
-                _buildHeader(),
-                const SizedBox(height: 12),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: Center(
-                      child: SudokuBoard(
-                        board: _board,
-                        isGiven: _isGiven,
-                        isError: _isError,
-                        selectedRow: _selectedRow,
-                        selectedCol: _selectedCol,
-                        isPaused: _isPaused,
-                        onCellTap: _onCellTap,
-                        strategyHighlight: _strategyHighlight,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                if (_hintMessage != null) _buildHintBanner(_hintMessage!),
-                const SizedBox(height: 8),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: NumberPad(
-                    onNumber: _onNumberInput,
-                    onErase: _onErase,
-                  ),
-                ),
-                const SizedBox(height: 12),
+                isWide ? _buildWideLayout() : _buildNarrowLayout(),
+                if (_isPaused) _buildPauseOverlay(),
               ],
-            ),
-            if (_isPaused) _buildPauseOverlay(),
-          ],
+            );
+          },
         ),
       ),
+    );
+  }
+
+  Widget _buildWideLayout() {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildHeader(),
+              const SizedBox(height: 12),
+              Expanded(
+                child: Center(
+                  child: SudokuBoard(
+                    board: _board,
+                    isGiven: _isGiven,
+                    isError: _isError,
+                    selectedRow: _selectedRow,
+                    selectedCol: _selectedCol,
+                    isPaused: _isPaused,
+                    onCellTap: _onCellTap,
+                    strategyHighlight: _strategyHighlight,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              if (_hintMessage != null) _buildHintBanner(_hintMessage!),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Center(
+            child: NumberPad(
+              onNumber: _onNumberInput,
+              onErase: _onErase,
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+      ],
+    );
+  }
+
+  Widget _buildNarrowLayout() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildHeader(),
+        const SizedBox(height: 12),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Center(
+              child: SudokuBoard(
+                board: _board,
+                isGiven: _isGiven,
+                isError: _isError,
+                selectedRow: _selectedRow,
+                selectedCol: _selectedCol,
+                isPaused: _isPaused,
+                onCellTap: _onCellTap,
+                strategyHighlight: _strategyHighlight,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        if (_hintMessage != null) _buildHintBanner(_hintMessage!),
+        const SizedBox(height: 8),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: NumberPad(
+            onNumber: _onNumberInput,
+            onErase: _onErase,
+          ),
+        ),
+        const SizedBox(height: 12),
+      ],
     );
   }
 
