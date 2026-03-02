@@ -56,6 +56,7 @@ class StrategyHighlight {
   final StrategyPhase phase;
   final Set<(int, int)> unitCells;
   final Set<(int, int)> eliminatorCells;
+  final Set<(int, int)> patternCells;
   final (int, int)? targetCell;
   final UnitType? unitType;
 
@@ -63,6 +64,7 @@ class StrategyHighlight {
     required this.phase,
     this.unitCells = const {},
     this.eliminatorCells = const {},
+    this.patternCells = const {},
     this.targetCell,
     this.unitType,
   });

@@ -43,6 +43,7 @@ class _GameScreenState extends State<GameScreen> {
   String? _hintMessage;
   int? _hintPhase; // null = no hint, 0 = scan, 1 = elimination, 2 = target
   HiddenSingleResult? _currentHintResult;
+  StrategyResult? _currentStrategyResult;
   final List<_Move> _undoStack = [];
   AppSettings _settings = const AppSettings();
 
@@ -343,9 +344,25 @@ class _GameScreenState extends State<GameScreen> {
     if (_hintPhase == null) return; // no hint active
     if (_isPaused || _isCompleted) return;
 
-    final result = _currentHintResult;
-    if (result == null) return;
+    // Check if we're using the old HiddenSingleResult or new StrategyResult
+    final hiddenSingle = _currentHintResult;
+    final strategy = _currentStrategyResult;
 
+    if (hiddenSingle == null && strategy == null) return;
+
+    // Handle legacy HiddenSingleResult
+    if (hiddenSingle != null && strategy == null) {
+      _advanceHintPhaseLegacy(hiddenSingle);
+      return;
+    }
+
+    // Handle new StrategyResult
+    if (strategy != null) {
+      _advanceHintPhaseStrategy(strategy);
+    }
+  }
+
+  void _advanceHintPhaseLegacy(HiddenSingleResult result) {
     if (_hintPhase! < 2) {
       // Advance to next phase
       setState(() {
@@ -407,16 +424,84 @@ class _GameScreenState extends State<GameScreen> {
     }
   }
 
+  void _advanceHintPhaseStrategy(StrategyResult result) {
+    if (_hintPhase! < 2) {
+      // Advance to next phase
+      setState(() {
+        _hintPhase = _hintPhase! + 1;
+        final unitLabel = result.unitType != null
+            ? switch (result.unitType!) {
+                UnitType.row => 'row',
+                UnitType.column => 'column',
+                UnitType.box => 'box',
+              }
+            : 'board';
+
+        if (_hintPhase == 1) {
+          // Elimination phase
+          _hintMessage = 'These cells block ${result.patternDigits} in this $unitLabel';
+          _strategyHighlight = StrategyHighlight(
+            phase: StrategyPhase.elimination,
+            unitCells: result.unitCells,
+            eliminatorCells: result.eliminationCells,
+            unitType: result.unitType,
+          );
+        } else if (_hintPhase == 2) {
+          // Target phase
+          _hintMessage = '${result.patternDigits} can only go in ${result.patternCells.length} cell(s)!';
+          _strategyHighlight = StrategyHighlight(
+            phase: StrategyPhase.target,
+            unitCells: result.unitCells,
+            patternCells: result.patternCells,
+            targetCell: result.targetCell,
+            unitType: result.unitType,
+          );
+        }
+      });
+    } else {
+      // Phase 2 complete - if there's a target cell, fill it
+      if (result.targetCell != null) {
+        final (row, col) = result.targetCell!;
+        setState(() {
+          final oldValue = _board[row][col];
+          // For most strategies, we need to determine which digit to fill
+          // For now, just highlight the cell - the user can fill it
+          _strategyHighlight = null;
+          _hintMessage = null;
+          _hintPhase = null;
+          _currentStrategyResult = null;
+          _isAnimating = false;
+          _selectedRow = row;
+          _selectedCol = col;
+        });
+      } else {
+        // No target cell (elimination only) - just clear the hint
+        setState(() {
+          _strategyHighlight = null;
+          _hintMessage = null;
+          _hintPhase = null;
+          _currentStrategyResult = null;
+          _isAnimating = false;
+        });
+      }
+    }
+  }
+
   void _showStrategyPicker() {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (_) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+      builder: (_) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        minChildSize: 0.3,
+        maxChildSize: 0.9,
+        expand: false,
+        builder: (_, scrollController) => ListView(
+          controller: scrollController,
+          padding: const EdgeInsets.symmetric(vertical: 16),
           children: [
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -426,22 +511,103 @@ class _GameScreenState extends State<GameScreen> {
               ),
             ),
             const Divider(),
-            ListTile(
-              leading: const Icon(Icons.lightbulb_outline,
-                  color: Color(0xFF1A237E)),
-              title: const Text('Hidden Single'),
-              subtitle: const Text(
-                'Find a digit that can only go in one cell within a row, column, or box',
-              ),
-              onTap: () {
-                Navigator.pop(context);
-                unawaited(_runHiddenSingleHint());
-              },
+            _strategyTile(
+              'Hidden Single',
+              'Find a digit that can only go in one cell within a row, column, or box',
+              () => _runStrategyHint(StrategyType.hiddenSingle),
+            ),
+            _strategyTile(
+              'Naked Pair',
+              'Find two cells in a unit with the same two candidates',
+              () => _runStrategyHint(StrategyType.nakedPair),
+            ),
+            _strategyTile(
+              'Hidden Pair',
+              'Find two cells in a unit that are the only ones for two digits',
+              () => _runStrategyHint(StrategyType.hiddenPair),
+            ),
+            _strategyTile(
+              'Naked Triple',
+              'Find three cells in a unit with the same three candidates',
+              () => _runStrategyHint(StrategyType.nakedTriple),
+            ),
+            _strategyTile(
+              'Hidden Triple',
+              'Find three cells in a unit that are the only ones for three digits',
+              () => _runStrategyHint(StrategyType.hiddenTriple),
+            ),
+            _strategyTile(
+              'Naked Quad',
+              'Find four cells in a unit with the same four candidates',
+              () => _runStrategyHint(StrategyType.nakedQuad),
+            ),
+            _strategyTile(
+              'Hidden Quad',
+              'Find four cells in a unit that are the only ones for four digits',
+              () => _runStrategyHint(StrategyType.hiddenQuad),
             ),
           ],
         ),
       ),
     );
+  }
+
+  Widget _strategyTile(String title, String subtitle, VoidCallback onTap) {
+    return ListTile(
+      leading: const Icon(Icons.lightbulb_outline, color: Color(0xFF1A237E)),
+      title: Text(title),
+      subtitle: Text(subtitle),
+      onTap: () {
+        Navigator.pop(context);
+        onTap();
+      },
+    );
+  }
+
+  Future<void> _runStrategyHint(StrategyType type) async {
+    final solver = StrategySolver(_board);
+    final result = switch (type) {
+      StrategyType.hiddenSingle => solver.findHiddenSingle(),
+      StrategyType.nakedPair => solver.findNakedPair(),
+      StrategyType.hiddenPair => solver.findHiddenPair(),
+      StrategyType.nakedTriple => solver.findNakedTriple(),
+      StrategyType.hiddenTriple => solver.findHiddenTriple(),
+      StrategyType.nakedQuad => solver.findNakedQuad(),
+      StrategyType.hiddenQuad => solver.findHiddenQuad(),
+    };
+
+    if (result == null) {
+      if (!mounted) return;
+      final name = type.name.replaceAllMapped(
+        RegExp(r'([A-Z])'),
+        (m) => ' ${m.group(1)}',
+      ).trim();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No $name found on this board.')),
+      );
+      return;
+    }
+
+    _currentStrategyResult = result;
+    final unitLabel = result.unitType != null
+        ? switch (result.unitType!) {
+            UnitType.row => 'row',
+            UnitType.column => 'column',
+            UnitType.box => 'box',
+          }
+        : 'board';
+
+    // Phase 0 — scan: highlight the unit
+    setState(() {
+      _isAnimating = true;
+      _hintPhase = 0;
+      _hintMessage = 'Scanning this $unitLabel — looking for ${result.patternDigits}';
+      _strategyHighlight = StrategyHighlight(
+        phase: StrategyPhase.scan,
+        unitCells: result.unitCells,
+        unitType: result.unitType,
+      );
+    });
   }
 
   void _showSettings() {
@@ -527,45 +693,36 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Widget _buildWideLayout() {
-    return Row(
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        _buildHeader(isWide: true),
+        const SizedBox(height: 12),
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _buildHeader(),
-              const SizedBox(height: 12),
-              Expanded(
-                child: Center(
-                  child: SudokuBoard(
-                    board: _board,
-                    isGiven: _isGiven,
-                    isError: _isError,
-                    selectedRow: _selectedRow,
-                    selectedCol: _selectedCol,
-                    isPaused: _isPaused,
-                    onCellTap: _onCellTap,
-                    strategyHighlight: _strategyHighlight,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              if (_hintMessage != null) _buildHintBanner(_hintMessage!),
-              const SizedBox(height: 8),
-            ],
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Center(
-            child: NumberPad(
-              onNumber: _onNumberInput,
-              onErase: _onErase,
+            child: SudokuBoard(
+              board: _board,
+              isGiven: _isGiven,
+              isError: _isError,
+              selectedRow: _selectedRow,
+              selectedCol: _selectedCol,
+              isPaused: _isPaused,
+              onCellTap: _onCellTap,
+              strategyHighlight: _strategyHighlight,
             ),
           ),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(height: 8),
+        if (_hintMessage != null) _buildHintBanner(_hintMessage!),
+        const SizedBox(height: 8),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: NumberPad(
+            onNumber: _onNumberInput,
+            onErase: _onErase,
+          ),
+        ),
+        const SizedBox(height: 12),
       ],
     );
   }
@@ -574,7 +731,7 @@ class _GameScreenState extends State<GameScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _buildHeader(),
+        _buildHeader(isWide: false),
         const SizedBox(height: 12),
         Expanded(
           child: Padding(
@@ -608,7 +765,110 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader({required bool isWide}) {
+    // Mobile layout: compact header with title on its own row
+    if (!isWide) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Row 1: Back, Undo, Settings, Timer, Export, Hint, Pause
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 8, 4, 0),
+            child: Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.arrow_back_ios_new, size: 20),
+                  onPressed: () {
+                    _timer?.cancel();
+                    Navigator.pop(context);
+                  },
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+                const SizedBox(width: 4),
+                IconButton(
+                  icon: const Icon(Icons.undo, size: 20),
+                  onPressed: (_isPaused || _isAnimating || _isCompleted || _undoStack.isEmpty)
+                      ? null
+                      : _undo,
+                  color: const Color(0xFF1A237E),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.settings, size: 20),
+                  onPressed: (_isPaused || _isAnimating || _isCompleted)
+                      ? null
+                      : _showSettings,
+                  color: const Color(0xFF1A237E),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+                const Spacer(),
+                Text(
+                  _formatTime(_elapsedSeconds),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1A237E),
+                    fontFamily: 'monospace',
+                  ),
+                ),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.share_outlined, size: 20),
+                  onPressed: (_isPaused || _isAnimating || _isCompleted)
+                      ? null
+                      : _exportGame,
+                  color: const Color(0xFF1A237E),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.lightbulb_outline, size: 20),
+                  onPressed: (_isPaused || _isAnimating || _isCompleted)
+                      ? null
+                      : _showStrategyPicker,
+                  color: const Color(0xFF1A237E),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+                IconButton(
+                  icon: Icon(_isPaused ? Icons.play_arrow_rounded : Icons.pause_rounded, size: 20),
+                  onPressed: _isAnimating ? null : _togglePause,
+                  color: const Color(0xFF1A237E),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+              ],
+            ),
+          ),
+          // Row 2: Title and difficulty
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'SUDOKU',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 4,
+                    color: Color(0xFF1A237E),
+                  ),
+                ),
+                Text(
+                  _difficultyLabel(),
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+    } else {
+    // Desktop layout: original wide header
     return Padding(
       padding: const EdgeInsets.fromLTRB(4, 8, 4, 0),
       child: Row(
@@ -688,6 +948,7 @@ class _GameScreenState extends State<GameScreen> {
         ],
       ),
     );
+    }
   }
 
   Widget _buildHintBanner(String message) {
