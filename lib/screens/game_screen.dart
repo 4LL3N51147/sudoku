@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:html' show AnchorElement, Blob, Url;
+import 'package:web/web.dart' as web;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../logic/sudoku_generator.dart';
@@ -661,13 +661,13 @@ class _GameScreenState extends State<GameScreen> {
 
     try {
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final blob = Blob([jsonString], 'application/json');
-      final url = Url.createObjectUrlFromBlob(blob);
-      AnchorElement(href: url)
-        ..setAttribute('download', 'sudoku-${widget.difficulty.name}-$timestamp.sudoku')
-        ..click();
-      // Delay revocation slightly to ensure download initiates
-      Future.delayed(const Duration(milliseconds: 100), () => Url.revokeObjectUrl(url));
+      // Encode the JSON string as a data URL for cross-platform compatibility
+      final encoded = Uri.encodeComponent(jsonString);
+      final dataUrl = 'data:application/json;charset=utf-8,$encoded';
+      final anchor = web.document.createElement('a') as web.HTMLAnchorElement
+        ..href = dataUrl
+        ..setAttribute('download', 'sudoku-${widget.difficulty.name}-$timestamp.sudoku');
+      anchor.click();
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Game exported!')),
