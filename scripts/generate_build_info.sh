@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 BUILD_TIME=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
 
