@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
-BUILD_TIME=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
+BUILD_TIME=$(date +"%Y-%m-%d %H:%M:%S %Z")
 
 cat > lib/build_info.dart << EOF
 /// Build information - auto-generated at build time
