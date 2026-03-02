@@ -123,6 +123,8 @@ class StrategySolver {
     if (result != null) return result;
     result = findNakedQuad();
     if (result != null) return result;
+    result = findHiddenQuad();
+    if (result != null) return result;
     return null;
   }
 
@@ -616,6 +618,106 @@ class StrategySolver {
                   unitCells: unitCells,
                   patternCells: quad.toSet(),
                   patternDigits: combinedCandidates,
+                  eliminationCells: eliminationCells,
+                );
+              }
+            }
+          }
+        }
+      }
+    }
+    return null;
+  }
+
+  /// Find hidden quads in the board
+  StrategyResult? findHiddenQuad() {
+    // Check rows
+    for (int r = 0; r < 9; r++) {
+      final cells = {for (int c = 0; c < 9; c++) (r, c)};
+      final result = _checkUnitForHiddenQuad(cells, UnitType.row);
+      if (result != null) return result;
+    }
+    // Check columns
+    for (int c = 0; c < 9; c++) {
+      final cells = {for (int r = 0; r < 9; r++) (r, c)};
+      final result = _checkUnitForHiddenQuad(cells, UnitType.column);
+      if (result != null) return result;
+    }
+    // Check boxes
+    for (int br = 0; br < 3; br++) {
+      for (int bc = 0; bc < 3; bc++) {
+        final cells = {
+          for (int r = br * 3; r < br * 3 + 3; r++)
+            for (int c = bc * 3; c < bc * 3 + 3; c++) (r, c),
+        };
+        final result = _checkUnitForHiddenQuad(cells, UnitType.box);
+        if (result != null) return result;
+      }
+    }
+    return null;
+  }
+
+  /// Check a unit for hidden quads
+  StrategyResult? _checkUnitForHiddenQuad(
+      Set<(int, int)> unitCells, UnitType unitType) {
+    final emptyCells = unitCells
+        .where((rc) => candidates[rc] != null && candidates[rc]!.isNotEmpty)
+        .toList();
+
+    // Build digit -> cells mapping
+    final digitToCells = <int, List<(int, int)>>{};
+    for (final cell in emptyCells) {
+      for (final d in candidates[cell]!) {
+        digitToCells.putIfAbsent(d, () => []).add(cell);
+      }
+    }
+
+    // Find all digit quadruples
+    final digits = digitToCells.keys.toList();
+    for (int i = 0; i < digits.length; i++) {
+      for (int j = i + 1; j < digits.length; j++) {
+        for (int k = j + 1; k < digits.length; k++) {
+          for (int l = k + 1; l < digits.length; l++) {
+            final d1 = digits[i];
+            final d2 = digits[j];
+            final d3 = digits[k];
+            final d4 = digits[l];
+            final cells1 = digitToCells[d1]!;
+            final cells2 = digitToCells[d2]!;
+            final cells3 = digitToCells[d3]!;
+            final cells4 = digitToCells[d4]!;
+
+            // All four digits appear in exactly the same 4 cells
+            final quadCells = cells1.toSet();
+            if (quadCells.length == 4 &&
+                cells2.toSet().length == 4 &&
+                cells3.toSet().length == 4 &&
+                cells4.toSet().length == 4 &&
+                cells2.toSet().containsAll(quadCells) &&
+                cells3.toSet().containsAll(quadCells) &&
+                cells4.toSet().containsAll(quadCells)) {
+              // Found hidden quad - eliminate these digits from other cells
+              final eliminationCells = <(int, int)>{};
+              for (final cell in emptyCells) {
+                if (!quadCells.contains(cell)) {
+                  final cellCand = candidates[cell]!;
+                  if (cellCand.contains(d1) ||
+                      cellCand.contains(d2) ||
+                      cellCand.contains(d3) ||
+                      cellCand.contains(d4)) {
+                    eliminationCells.add(cell);
+                  }
+                }
+              }
+
+              if (eliminationCells.isNotEmpty) {
+                return StrategyResult(
+                  type: StrategyType.hiddenQuad,
+                  phase: StrategyPhase.elimination,
+                  unitType: unitType,
+                  unitCells: unitCells,
+                  patternCells: quadCells,
+                  patternDigits: {d1, d2, d3, d4},
                   eliminationCells: eliminationCells,
                 );
               }

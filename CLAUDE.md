@@ -47,12 +47,13 @@ python3 -m http.server 8080 --directory build/web
 
 ## Testing
 
-**`flutter test` is broken** on this machine due to a connectivity issue with
-`storage.flutter-io.cn` (test runner tries to download assets and fails).
-Use `flutter analyze` to verify correctness instead.
-
 Logic tests live in `test/logic/` and import only `package:flutter_test/flutter_test.dart`
 plus the pure-Dart logic files. Widget tests are in `test/widget_test.dart`.
+
+**All changes must include Playwright integration tests**, regardless of change size.
+Use the Playwright MCP tools (browser_navigate, browser_snapshot, browser_click, etc.)
+to verify the web app works correctly in a real browser. See the Playwright section
+below for setup details.
 
 ## Code Conventions
 
@@ -69,6 +70,15 @@ plus the pure-Dart logic files. Widget tests are in `test/widget_test.dart`.
 
 - **Default branch:** `main`
 - Commit messages should be descriptive.
+
+## Plan Execution Workflow
+
+When executing implementation plans with multiple independent tasks, always use the
+**subagent-driven-development** skill (`superpowers:subagent-driven-development`) rather
+than executing tasks sequentially in the main session. This enables parallel execution
+of independent tasks and better context management.
+
+**Never use git worktrees** — modify the codebase in place on local branches.
 
 ## Playwright / Browser Automation
 
