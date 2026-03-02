@@ -8,18 +8,23 @@ A Flutter/Dart Sudoku game targeting web (and mobile).
 sudoku/
 ├── lib/
 │   ├── main.dart                    # Entry point (SudokuApp)
+│   ├── app_settings.dart            # App settings/state management
 │   ├── logic/
 │   │   ├── sudoku_generator.dart    # Puzzle generation
+│   │   ├── game_state.dart          # Game state management
 │   │   └── strategy_solver.dart     # Hint strategies (pure Dart, no Flutter imports)
 │   ├── screens/
 │   │   ├── difficulty_screen.dart   # White bg, OutlinedButton per difficulty
 │   │   └── game_screen.dart         # Main game: timer, animation, input guards
 │   └── widgets/
 │       ├── sudoku_board.dart        # Stateless board; driven entirely by props
-│       └── number_pad.dart
+│       ├── number_pad.dart
+│       └── settings_sheet.dart      # Settings dialog (hint animation controls)
 ├── test/
 │   ├── widget_test.dart
-│   └── logic/strategy_solver_test.dart
+│   └── logic/
+│       ├── game_state_test.dart
+│       └── strategy_solver_test.dart
 └── web/                             # Flutter web build assets
 ```
 
@@ -47,8 +52,12 @@ python3 -m http.server 8080 --directory build/web
 
 ## Testing
 
-Logic tests live in `test/logic/` and import only `package:flutter_test/flutter_test.dart`
-plus the pure-Dart logic files. Widget tests are in `test/widget_test.dart`.
+Logic tests live in `test/logic/` (`game_state_test.dart`, `strategy_solver_test.dart`)
+and import only `package:flutter_test/flutter_test.dart` plus the pure-Dart logic files.
+Widget tests are in `test/widget_test.dart`.
+
+`flutter analyze` runs code quality checks (7 info-level issues are expected: deprecated
+`dart:html` usage for keyboard handling and minor style suggestions).
 
 **All changes must include Playwright integration tests**, regardless of change size.
 Use the Playwright MCP tools (browser_navigate, browser_snapshot, browser_click, etc.)
