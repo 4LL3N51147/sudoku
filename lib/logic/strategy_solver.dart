@@ -152,6 +152,25 @@ bool _isLegal(List<List<int>> board, int row, int col, int digit) {
   return true;
 }
 
+/// Computes all candidates for each empty cell on the board.
+Map<(int, int), Set<int>> computeCandidates(List<List<int>> board) {
+  final candidates = <(int, int), Set<int>>{};
+  for (int r = 0; r < 9; r++) {
+    for (int c = 0; c < 9; c++) {
+      if (board[r][c] == 0) {
+        final cellCandidates = <int>{};
+        for (int d = 1; d <= 9; d++) {
+          if (_isLegal(board, r, c, d)) {
+            cellCandidates.add(d);
+          }
+        }
+        candidates[(r, c)] = cellCandidates;
+      }
+    }
+  }
+  return candidates;
+}
+
 Set<(int, int)> _findBlockers(
     List<List<int>> board, int row, int col, int digit) {
   final blockers = <(int, int)>{};
