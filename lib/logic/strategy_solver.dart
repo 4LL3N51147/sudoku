@@ -117,6 +117,8 @@ class StrategySolver {
     if (result != null) return result;
     result = findHiddenPair();
     if (result != null) return result;
+    result = findNakedTriple();
+    if (result != null) return result;
     return null;
   }
 
@@ -355,6 +357,84 @@ class StrategySolver {
                 unitCells: unitCells,
                 patternCells: pairCells,
                 patternDigits: {d1, d2},
+                eliminationCells: eliminationCells,
+              );
+            }
+          }
+        }
+      }
+    }
+    return null;
+  }
+
+  /// Find naked triples in the board
+  StrategyResult? findNakedTriple() {
+    // Check rows
+    for (int r = 0; r < 9; r++) {
+      final cells = {for (int c = 0; c < 9; c++) (r, c)};
+      final result = _checkUnitForNakedTriple(cells, UnitType.row);
+      if (result != null) return result;
+    }
+    // Check columns
+    for (int c = 0; c < 9; c++) {
+      final cells = {for (int r = 0; r < 9; r++) (r, c)};
+      final result = _checkUnitForNakedTriple(cells, UnitType.column);
+      if (result != null) return result;
+    }
+    // Check boxes
+    for (int br = 0; br < 3; br++) {
+      for (int bc = 0; bc < 3; bc++) {
+        final cells = {
+          for (int r = br * 3; r < br * 3 + 3; r++)
+            for (int c = bc * 3; c < bc * 3 + 3; c++) (r, c),
+        };
+        final result = _checkUnitForNakedTriple(cells, UnitType.box);
+        if (result != null) return result;
+      }
+    }
+    return null;
+  }
+
+  /// Check a unit for naked triples
+  StrategyResult? _checkUnitForNakedTriple(
+      Set<(int, int)> unitCells, UnitType unitType) {
+    final emptyCells = unitCells
+        .where((rc) => candidates[rc] != null && candidates[rc]!.isNotEmpty)
+        .toList();
+
+    // Find all combinations of 3 cells
+    for (int i = 0; i < emptyCells.length; i++) {
+      for (int j = i + 1; j < emptyCells.length; j++) {
+        for (int k = j + 1; k < emptyCells.length; k++) {
+          final triple = [emptyCells[i], emptyCells[j], emptyCells[k]];
+          final combinedCandidates = <int>{};
+          for (final cell in triple) {
+            combinedCandidates.addAll(candidates[cell]!);
+          }
+
+          // Naked triple: exactly 3 combined candidates
+          if (combinedCandidates.length == 3) {
+            // Find elimination cells
+            final eliminationCells = <(int, int)>{};
+            for (final cell in emptyCells) {
+              if (!triple.contains(cell)) {
+                final cellCand = candidates[cell]!;
+                for (final d in combinedCandidates) {
+                  if (cellCand.contains(d)) {
+                    eliminationCells.add(cell);
+                  }
+                }
+              }
+            }
+
+            if (eliminationCells.isNotEmpty) {
+              return StrategyResult(
+                type: StrategyType.nakedTriple,
+                phase: StrategyPhase.elimination,
+                unitType: unitType,
+                unitCells: unitCells,
+                patternCells: triple.toSet(),
+                patternDigits: combinedCandidates,
                 eliminationCells: eliminationCells,
               );
             }
