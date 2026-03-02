@@ -171,6 +171,102 @@ Map<(int, int), Set<int>> computeCandidates(List<List<int>> board) {
   return candidates;
 }
 
+class StrategySolver {
+  final List<List<int>> board;
+  final Map<(int, int), Set<int>> candidates;
+
+  StrategySolver(this.board) : candidates = computeCandidates(board);
+
+  StrategyResult? findNextStrategy() {
+    // Try strategies in order: singles -> pairs -> triples -> quads
+    final result = findHiddenSingle();
+    if (result != null) return result;
+    return null;
+  }
+
+  StrategyResult? findHiddenSingle() {
+    // Rows
+    for (int r = 0; r < 9; r++) {
+      final cells = {for (int c = 0; c < 9; c++) (r, c)};
+      final result = _checkUnitForHiddenSingle(cells, UnitType.row);
+      if (result != null) return result;
+    }
+    // Columns
+    for (int c = 0; c < 9; c++) {
+      final cells = {for (int r = 0; r < 9; r++) (r, c)};
+      final result = _checkUnitForHiddenSingle(cells, UnitType.column);
+      if (result != null) return result;
+    }
+    // Boxes
+    for (int br = 0; br < 3; br++) {
+      for (int bc = 0; bc < 3; bc++) {
+        final cells = {
+          for (int r = br * 3; r < br * 3 + 3; r++)
+            for (int c = bc * 3; c < bc * 3 + 3; c++) (r, c),
+        };
+        final result = _checkUnitForHiddenSingle(cells, UnitType.box);
+        if (result != null) return result;
+      }
+    }
+    return null;
+  }
+
+  StrategyResult? _checkUnitForHiddenSingle(
+      Set<(int, int)> unitCells, UnitType unitType) {
+    final presentDigits = {
+      for (final (r, c) in unitCells)
+        if (board[r][c] != 0) board[r][c],
+    };
+
+    for (int digit = 1; digit <= 9; digit++) {
+      if (presentDigits.contains(digit)) continue;
+
+      final cellsWithDigit = unitCells
+          .where((rc) => candidates[rc]?.contains(digit) ?? false)
+          .toList();
+
+      if (cellsWithDigit.length == 1) {
+        final (tr, tc) = cellsWithDigit.first;
+        final eliminators = <(int, int)>{};
+        for (final (r, c) in unitCells) {
+          if ((r, c) == (tr, tc)) continue;
+          if (board[r][c] != 0) continue;
+          eliminators.addAll(_findBlockers(r, c, digit));
+        }
+        return StrategyResult(
+          type: StrategyType.hiddenSingle,
+          phase: StrategyPhase.target,
+          unitType: unitType,
+          unitCells: unitCells,
+          patternCells: {(tr, tc)},
+          patternDigits: {digit},
+          eliminationCells: eliminators,
+          targetCell: (tr, tc),
+        );
+      }
+    }
+    return null;
+  }
+
+  Set<(int, int)> _findBlockers(int row, int col, int digit) {
+    final blockers = <(int, int)>{};
+    for (int c = 0; c < 9; c++) {
+      if (board[row][c] == digit) blockers.add((row, c));
+    }
+    for (int r = 0; r < 9; r++) {
+      if (board[r][col] == digit) blockers.add((r, col));
+    }
+    final br = (row ~/ 3) * 3;
+    final bc = (col ~/ 3) * 3;
+    for (int r = br; r < br + 3; r++) {
+      for (int c = bc; c < bc + 3; c++) {
+        if (board[r][c] == digit) blockers.add((r, c));
+      }
+    }
+    return blockers;
+  }
+}
+
 Set<(int, int)> _findBlockers(
     List<List<int>> board, int row, int col, int digit) {
   final blockers = <(int, int)>{};
