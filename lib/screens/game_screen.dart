@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:html' show AnchorElement, Blob, Url;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../logic/sudoku_generator.dart';
 import '../logic/strategy_solver.dart';
 import '../logic/game_state.dart';
@@ -48,6 +49,7 @@ class _GameScreenState extends State<GameScreen> {
   @override
   void initState() {
     super.initState();
+    HardwareKeyboard.instance.addHandler(_handleKeyEvent);
     _newGame();
     _loadSettings();
   }
@@ -60,7 +62,66 @@ class _GameScreenState extends State<GameScreen> {
   @override
   void dispose() {
     _timer?.cancel();
+    HardwareKeyboard.instance.removeHandler(_handleKeyEvent);
     super.dispose();
+  }
+
+  bool _handleKeyEvent(KeyEvent event) {
+    if (event is! KeyDownEvent) return false;
+    if (_isAnimating) return false;
+
+    final key = event.logicalKey;
+    final isCtrl = HardwareKeyboard.instance.isControlPressed;
+
+    // Digits 1-9 (number row and numpad)
+    final digitKeys = {
+      LogicalKeyboardKey.digit1: 1, LogicalKeyboardKey.digit2: 2,
+      LogicalKeyboardKey.digit3: 3, LogicalKeyboardKey.digit4: 4,
+      LogicalKeyboardKey.digit5: 5, LogicalKeyboardKey.digit6: 6,
+      LogicalKeyboardKey.digit7: 7, LogicalKeyboardKey.digit8: 8,
+      LogicalKeyboardKey.digit9: 9,
+      LogicalKeyboardKey.numpad1: 1, LogicalKeyboardKey.numpad2: 2,
+      LogicalKeyboardKey.numpad3: 3, LogicalKeyboardKey.numpad4: 4,
+      LogicalKeyboardKey.numpad5: 5, LogicalKeyboardKey.numpad6: 6,
+      LogicalKeyboardKey.numpad7: 7, LogicalKeyboardKey.numpad8: 8,
+      LogicalKeyboardKey.numpad9: 9,
+    };
+    if (digitKeys.containsKey(key) && !isCtrl) {
+      _onNumberInput(digitKeys[key]!);
+      return true;
+    }
+
+    // Erase: Backspace or Delete
+    if (key == LogicalKeyboardKey.backspace || key == LogicalKeyboardKey.delete) {
+      _onErase();
+      return true;
+    }
+
+    // Ctrl+Z: Undo
+    if (isCtrl && key == LogicalKeyboardKey.keyZ) {
+      _undo();
+      return true;
+    }
+
+    // Ctrl+S: Export
+    if (isCtrl && key == LogicalKeyboardKey.keyS) {
+      _exportGame();
+      return true;
+    }
+
+    // H: Hint
+    if (key == LogicalKeyboardKey.keyH && !isCtrl) {
+      _runHiddenSingleHint();
+      return true;
+    }
+
+    // Space: Pause/resume
+    if (key == LogicalKeyboardKey.space && !isCtrl) {
+      _togglePause();
+      return true;
+    }
+
+    return false;
   }
 
   void _newGame() {
