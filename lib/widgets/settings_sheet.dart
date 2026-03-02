@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../app_settings.dart';
+import '../build_info.dart';
 
 class SettingsSheet extends StatefulWidget {
   final AppSettings settings;
@@ -124,6 +125,41 @@ class _SettingsSheetState extends State<SettingsSheet> {
             title: 'Target',
             value: _targetMs,
             onChanged: (v) => _update(target: v),
+          ),
+          const SizedBox(height: 24),
+          const Text(
+            'ABOUT',
+            style: TextStyle(
+              fontSize: 11,
+              color: Colors.grey,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 1.2,
+            ),
+          ),
+          const SizedBox(height: 8),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Version'),
+            trailing: Text(
+              BuildInfo.version,
+              style: const TextStyle(color: Colors.grey),
+            ),
+          ),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Build'),
+            trailing: Text(
+              BuildInfo.buildTime,
+              style: const TextStyle(color: Colors.grey),
+            ),
+          ),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Commit'),
+            trailing: Text(
+              BuildInfo.commit,
+              style: const TextStyle(color: Colors.grey),
+            ),
           ),
         ],
       ),
