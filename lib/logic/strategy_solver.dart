@@ -247,19 +247,21 @@ class StrategySolver {
         .where((rc) => candidates[rc] != null && candidates[rc]!.length >= 2)
         .toList();
 
-    // Find pairs: cells with exactly the same 2 candidates
-    final seen = <Set<int>, List<(int, int)>>{};
+    // Find pairs: cells with exactly the same 2 candidates.
+    // Use a sorted string key because Dart's Set doesn't override == for content equality.
+    final seen = <String, List<(int, int)>>{};
     for (final cell in emptyCells) {
       final cellCandidates = candidates[cell]!;
       if (cellCandidates.length == 2) {
-        seen.putIfAbsent(cellCandidates, () => []).add(cell);
+        final key = (cellCandidates.toList()..sort()).join(',');
+        seen.putIfAbsent(key, () => []).add(cell);
       }
     }
 
     for (final entry in seen.entries) {
       if (entry.value.length >= 2) {
         final pairCells = entry.value.take(2).toSet();
-        final pairDigits = entry.key;
+        final pairDigits = candidates[entry.value.first]!;
 
         // Find elimination cells (other empty cells in unit that contain these digits)
         final eliminationCells = <(int, int)>{};
