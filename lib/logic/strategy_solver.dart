@@ -111,8 +111,9 @@ class StrategySolver {
   StrategySolver(this.board) : candidates = computeCandidates(board);
 
   StrategyResult? findNextStrategy() {
-    // Try strategies in order: singles -> pairs -> triples -> quads
-    final result = findHiddenSingle();
+    var result = findHiddenSingle();
+    if (result != null) return result;
+    result = findNakedPair();
     if (result != null) return result;
     return null;
   }
@@ -197,6 +198,84 @@ class StrategySolver {
       }
     }
     return blockers;
+  }
+
+  /// Find naked pairs in the board
+  StrategyResult? findNakedPair() {
+    // Check rows
+    for (int r = 0; r < 9; r++) {
+      final cells = {for (int c = 0; c < 9; c++) (r, c)};
+      final result = _checkUnitForNakedPair(cells, UnitType.row);
+      if (result != null) return result;
+    }
+    // Check columns
+    for (int c = 0; c < 9; c++) {
+      final cells = {for (int r = 0; r < 9; r++) (r, c)};
+      final result = _checkUnitForNakedPair(cells, UnitType.column);
+      if (result != null) return result;
+    }
+    // Check boxes
+    for (int br = 0; br < 3; br++) {
+      for (int bc = 0; bc < 3; bc++) {
+        final cells = {
+          for (int r = br * 3; r < br * 3 + 3; r++)
+            for (int c = bc * 3; c < bc * 3 + 3; c++) (r, c),
+        };
+        final result = _checkUnitForNakedPair(cells, UnitType.box);
+        if (result != null) return result;
+      }
+    }
+    return null;
+  }
+
+  /// Check a unit for naked pairs
+  StrategyResult? _checkUnitForNakedPair(
+      Set<(int, int)> unitCells, UnitType unitType) {
+    final emptyCells = unitCells
+        .where((rc) => candidates[rc] != null && candidates[rc]!.length >= 2)
+        .toList();
+
+    // Find pairs: cells with exactly the same 2 candidates
+    final seen = <Set<int>, List<(int, int)>>{};
+    for (final cell in emptyCells) {
+      final cellCandidates = candidates[cell]!;
+      if (cellCandidates.length == 2) {
+        seen.putIfAbsent(cellCandidates, () => []).add(cell);
+      }
+    }
+
+    for (final entry in seen.entries) {
+      if (entry.value.length >= 2) {
+        final pairCells = entry.value.take(2).toSet();
+        final pairDigits = entry.key;
+
+        // Find elimination cells (other empty cells in unit that contain these digits)
+        final eliminationCells = <(int, int)>{};
+        for (final cell in emptyCells) {
+          if (!pairCells.contains(cell)) {
+            final cellCand = candidates[cell]!;
+            for (final d in pairDigits) {
+              if (cellCand.contains(d)) {
+                eliminationCells.add(cell);
+              }
+            }
+          }
+        }
+
+        if (eliminationCells.isNotEmpty) {
+          return StrategyResult(
+            type: StrategyType.nakedPair,
+            phase: StrategyPhase.elimination,
+            unitType: unitType,
+            unitCells: unitCells,
+            patternCells: pairCells,
+            patternDigits: pairDigits,
+            eliminationCells: eliminationCells,
+          );
+        }
+      }
+    }
+    return null;
   }
 }
 
