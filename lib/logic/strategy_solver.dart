@@ -2,6 +2,38 @@ enum StrategyPhase { scan, elimination, target }
 
 enum UnitType { row, column, box }
 
+enum StrategyType {
+  hiddenSingle,
+  nakedPair,
+  hiddenPair,
+  nakedTriple,
+  hiddenTriple,
+  nakedQuad,
+  hiddenQuad,
+}
+
+class StrategyResult {
+  final StrategyType type;
+  final StrategyPhase phase;
+  final UnitType? unitType;
+  final Set<(int, int)> unitCells;
+  final Set<(int, int)> patternCells;
+  final Set<int> patternDigits;
+  final Set<(int, int)> eliminationCells;
+  final (int, int)? targetCell;
+
+  const StrategyResult({
+    required this.type,
+    required this.phase,
+    this.unitType,
+    this.unitCells = const {},
+    this.patternCells = const {},
+    this.patternDigits = const {},
+    this.eliminationCells = const {},
+    this.targetCell,
+  });
+}
+
 class HiddenSingleResult {
   final int row;
   final int col;
