@@ -439,12 +439,16 @@ class _GameScreenState extends State<GameScreen> {
             : 'board';
 
         if (_hintPhase == 1) {
-          // Elimination phase
-          _hintMessage = 'These cells block ${result.patternDigits} in this $unitLabel';
+          // Elimination phase - show which candidates to eliminate
+          final digits = result.patternDigits;
+          final cells = result.eliminationCells.length;
+          _hintMessage = 'Remove $digits from $cells cell${cells > 1 ? 's' : ''} in this $unitLabel';
           _strategyHighlight = StrategyHighlight(
             phase: StrategyPhase.elimination,
             unitCells: result.unitCells,
             eliminatorCells: result.eliminationCells,
+            patternDigits: result.patternDigits,
+            eliminationCandidates: result.eliminationCandidates,
             unitType: result.unitType,
           );
         } else if (_hintPhase == 2) {
@@ -454,6 +458,7 @@ class _GameScreenState extends State<GameScreen> {
             phase: StrategyPhase.target,
             unitCells: result.unitCells,
             patternCells: result.patternCells,
+            patternDigits: result.patternDigits,
             targetCell: result.targetCell,
             unitType: result.unitType,
           );
@@ -624,6 +629,7 @@ class _GameScreenState extends State<GameScreen> {
       _strategyHighlight = StrategyHighlight(
         phase: StrategyPhase.scan,
         unitCells: result.unitCells,
+        patternDigits: result.patternDigits,
         unitType: result.unitType,
       );
     });

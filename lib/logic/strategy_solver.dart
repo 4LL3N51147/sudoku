@@ -21,6 +21,8 @@ class StrategyResult {
   final Set<int> patternDigits;
   final Set<(int, int)> eliminationCells;
   final (int, int)? targetCell;
+  /// Map of cell -> digits to eliminate from that cell (for visual strikethrough)
+  final Map<(int, int), Set<int>> eliminationCandidates;
 
   const StrategyResult({
     required this.type,
@@ -31,6 +33,7 @@ class StrategyResult {
     this.patternDigits = const {},
     this.eliminationCells = const {},
     this.targetCell,
+    this.eliminationCandidates = const {},
   });
 }
 
@@ -59,6 +62,10 @@ class StrategyHighlight {
   final Set<(int, int)> patternCells;
   final (int, int)? targetCell;
   final UnitType? unitType;
+  /// The digits being eliminated (e.g., {2, 4} for naked pair)
+  final Set<int> patternDigits;
+  /// Map of cell -> digits to eliminate from that cell (for visual strikethrough)
+  final Map<(int, int), Set<int>> eliminationCandidates;
 
   const StrategyHighlight({
     required this.phase,
@@ -67,6 +74,8 @@ class StrategyHighlight {
     this.patternCells = const {},
     this.targetCell,
     this.unitType,
+    this.patternDigits = const {},
+    this.eliminationCandidates = const {},
   });
 }
 
@@ -264,14 +273,21 @@ class StrategySolver {
         final pairDigits = candidates[entry.value.first]!;
 
         // Find elimination cells (other empty cells in unit that contain these digits)
+        // Also track which specific digits to eliminate from each cell
         final eliminationCells = <(int, int)>{};
+        final eliminationCandidates = <(int, int), Set<int>>{};
         for (final cell in emptyCells) {
           if (!pairCells.contains(cell)) {
             final cellCand = candidates[cell]!;
+            final digitsToRemove = <int>{};
             for (final d in pairDigits) {
               if (cellCand.contains(d)) {
                 eliminationCells.add(cell);
+                digitsToRemove.add(d);
               }
+            }
+            if (digitsToRemove.isNotEmpty) {
+              eliminationCandidates[cell] = digitsToRemove;
             }
           }
         }
@@ -285,6 +301,7 @@ class StrategySolver {
             patternCells: pairCells,
             patternDigits: pairDigits,
             eliminationCells: eliminationCells,
+            eliminationCandidates: eliminationCandidates,
           );
         }
       }

@@ -199,15 +199,31 @@ class SudokuBoard extends StatelessWidget {
         final isEliminated = _isEliminated(row, col, digit);
 
         return Center(
-          child: Text(
-            '$digit',
-            style: TextStyle(
-              fontSize: 9,
-              color: isEliminated
-                  ? Colors.grey.shade300
-                  : (hasCandidate ? Colors.blue.shade700 : Colors.transparent),
-            ),
-          ),
+          child: isEliminated
+              ? Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Text(
+                      '$digit',
+                      style: TextStyle(
+                        fontSize: 9,
+                        color: Colors.grey.shade400,
+                      ),
+                    ),
+                    Container(
+                      width: 8,
+                      height: 1,
+                      color: Colors.red.shade400,
+                    ),
+                  ],
+                )
+              : Text(
+                  '$digit',
+                  style: TextStyle(
+                    fontSize: 9,
+                    color: hasCandidate ? Colors.blue.shade700 : Colors.transparent,
+                  ),
+                ),
         );
       }),
     );
@@ -215,26 +231,42 @@ class SudokuBoard extends StatelessWidget {
 
   bool _isEliminated(int row, int col, int digit) {
     final sh = strategyHighlight;
-    if (sh == null || sh.phase != StrategyPhase.elimination) {
+    if (sh == null) return false;
+
+    // Use eliminationCandidates if available (new approach with specific digit info)
+    if (sh.eliminationCandidates.isNotEmpty) {
+      return sh.eliminationCandidates[(row, col)]?.contains(digit) ?? false;
+    }
+
+    // Fallback: check if this cell is in elimination phase and should have strikethrough
+    if (sh.phase != StrategyPhase.elimination) {
       return false;
     }
 
-    // Check if this digit is eliminated in this cell
+    // Check if this digit is eliminated in this cell based on patternDigits
     final unitCells = sh.unitCells;
     final eliminatorCells = sh.eliminatorCells;
+    final patternDigits = sh.patternDigits;
 
     // If this cell is in the elimination unit and is not itself an eliminator
-    if (!unitCells.contains((row, col)) || eliminatorCells.contains((row, col))) {
+    // and not the pattern cells
+    if (!unitCells.contains((row, col)) ||
+        eliminatorCells.contains((row, col)) ||
+        sh.patternCells.contains((row, col))) {
       return false;
     }
 
-    // Check if any eliminator cell has this digit
-    for (final ec in eliminatorCells) {
-      final r = ec.$1;
-      final c = ec.$2;
-      // Check if board[r][c] has the digit
-      if (board[r][c] == digit) {
-        return true; // This digit is eliminated by the eliminator cells
+    // Check if any eliminator cell has this digit as a candidate
+    final cellCandidates = candidates?[(row, col)];
+    if (cellCandidates == null) return false;
+
+    // If this digit is in patternDigits and exists in eliminator cells, it's eliminated
+    if (patternDigits.contains(digit)) {
+      for (final ec in eliminatorCells) {
+        final ecCandidates = candidates?[ec];
+        if (ecCandidates?.contains(digit) ?? false) {
+          return true;
+        }
       }
     }
 
