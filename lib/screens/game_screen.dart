@@ -478,7 +478,6 @@ class _GameScreenState extends State<GameScreen> {
       if (result.targetCell != null) {
         final (row, col) = result.targetCell!;
         setState(() {
-          final oldValue = _board[row][col];
           // For most strategies, we need to determine which digit to fill
           // For now, just highlight the cell - the user can fill it
           _strategyHighlight = null;

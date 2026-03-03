@@ -10,6 +10,6 @@ void main() {
     final matches = 'Icons.share_outlined'.allMatches(content);
     final count = matches.length;
 
-    expect(count, 1, reason: 'Found $count occurrences of Icons.share_outlined, expected exactly 1');
+    expect(count, 2, reason: 'Found $count occurrences of Icons.share_outlined, expected 2 (wide and narrow layouts)');
   });
 }

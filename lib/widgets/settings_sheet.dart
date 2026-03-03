@@ -137,28 +137,28 @@ class _SettingsSheetState extends State<SettingsSheet> {
             ),
           ),
           const SizedBox(height: 8),
-          ListTile(
+          const ListTile(
             contentPadding: EdgeInsets.zero,
-            title: const Text('Version'),
+            title: Text('Version'),
             trailing: Text(
               BuildInfo.version,
-              style: const TextStyle(color: Colors.grey),
+              style: TextStyle(color: Colors.grey),
             ),
           ),
-          ListTile(
+          const ListTile(
             contentPadding: EdgeInsets.zero,
-            title: const Text('Build'),
+            title: Text('Build'),
             trailing: Text(
               BuildInfo.buildTime,
-              style: const TextStyle(color: Colors.grey),
+              style: TextStyle(color: Colors.grey),
             ),
           ),
-          ListTile(
+          const ListTile(
             contentPadding: EdgeInsets.zero,
-            title: const Text('Commit'),
+            title: Text('Commit'),
             trailing: Text(
               BuildInfo.commit,
-              style: const TextStyle(color: Colors.grey),
+              style: TextStyle(color: Colors.grey),
             ),
           ),
         ],
