@@ -383,6 +383,9 @@ class _GameScreenState extends State<GameScreen> {
             unitCells: result.unitCells,
             eliminatorCells: result.eliminatorCells,
             unitType: result.unitType,
+            eliminationRows: result.eliminationRows,
+            eliminationCols: result.eliminationCols,
+            eliminationBoxes: result.eliminationBoxes,
           );
         } else if (_hintPhase == 2) {
           // Target phase
@@ -394,6 +397,9 @@ class _GameScreenState extends State<GameScreen> {
             eliminatorCells: result.eliminatorCells,
             targetCell: (result.row, result.col),
             unitType: result.unitType,
+            eliminationRows: result.eliminationRows,
+            eliminationCols: result.eliminationCols,
+            eliminationBoxes: result.eliminationBoxes,
           );
         }
       });
@@ -459,6 +465,9 @@ class _GameScreenState extends State<GameScreen> {
             patternDigits: result.patternDigits,
             eliminationCandidates: result.eliminationCandidates,
             unitType: result.unitType,
+            eliminationRows: result.eliminationRows,
+            eliminationCols: result.eliminationCols,
+            eliminationBoxes: result.eliminationBoxes,
           );
         } else if (_hintPhase == 2) {
           // Target phase
@@ -470,6 +479,9 @@ class _GameScreenState extends State<GameScreen> {
             patternDigits: result.patternDigits,
             targetCell: result.targetCell,
             unitType: result.unitType,
+            eliminationRows: result.eliminationRows,
+            eliminationCols: result.eliminationCols,
+            eliminationBoxes: result.eliminationBoxes,
           );
         }
       });
@@ -764,8 +776,12 @@ class _GameScreenState extends State<GameScreen> {
             ),
           ),
         ),
-        const SizedBox(height: 8),
-        if (_hintMessage != null) _buildHintBanner(_hintMessage!),
+        const SizedBox(height: 16),
+        // Reserve space for hint banner to prevent layout shift
+        SizedBox(
+          height: _hintMessage != null ? 52 : 0,
+          child: _hintMessage != null ? _buildHintBanner(_hintMessage!) : const SizedBox(),
+        ),
         const SizedBox(height: 8),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -803,8 +819,12 @@ class _GameScreenState extends State<GameScreen> {
             ),
           ),
         ),
-        const SizedBox(height: 8),
-        if (_hintMessage != null) _buildHintBanner(_hintMessage!),
+        const SizedBox(height: 16),
+        // Reserve space for hint banner to prevent layout shift
+        SizedBox(
+          height: _hintMessage != null ? 52 : 0,
+          child: _hintMessage != null ? _buildHintBanner(_hintMessage!) : const SizedBox(),
+        ),
         const SizedBox(height: 8),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),

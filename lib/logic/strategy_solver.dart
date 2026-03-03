@@ -23,6 +23,12 @@ class StrategyResult {
   final (int, int)? targetCell;
   /// Map of cell -> digits to eliminate from that cell (for visual strikethrough)
   final Map<(int, int), Set<int>> eliminationCandidates;
+  /// Rows that contain the digit being eliminated (for red elimination zones)
+  final Set<int> eliminationRows;
+  /// Columns that contain the digit being eliminated (for red elimination zones)
+  final Set<int> eliminationCols;
+  /// Boxes (0-8) that contain the digit being eliminated (for red elimination zones)
+  final Set<int> eliminationBoxes;
 
   const StrategyResult({
     required this.type,
@@ -34,6 +40,9 @@ class StrategyResult {
     this.eliminationCells = const {},
     this.targetCell,
     this.eliminationCandidates = const {},
+    this.eliminationRows = const {},
+    this.eliminationCols = const {},
+    this.eliminationBoxes = const {},
   });
 }
 
@@ -44,6 +53,12 @@ class HiddenSingleResult {
   final Set<(int, int)> unitCells;
   final Set<(int, int)> eliminatorCells;
   final UnitType unitType;
+  /// Rows that contain the digit being eliminated (for red elimination zones)
+  final Set<int> eliminationRows;
+  /// Columns that contain the digit being eliminated (for red elimination zones)
+  final Set<int> eliminationCols;
+  /// Boxes (0-8) that contain the digit being eliminated (for red elimination zones)
+  final Set<int> eliminationBoxes;
 
   const HiddenSingleResult({
     required this.row,
@@ -52,6 +67,9 @@ class HiddenSingleResult {
     required this.unitCells,
     required this.eliminatorCells,
     required this.unitType,
+    this.eliminationRows = const {},
+    this.eliminationCols = const {},
+    this.eliminationBoxes = const {},
   });
 }
 
@@ -66,6 +84,12 @@ class StrategyHighlight {
   final Set<int> patternDigits;
   /// Map of cell -> digits to eliminate from that cell (for visual strikethrough)
   final Map<(int, int), Set<int>> eliminationCandidates;
+  /// Rows that contain the digit being eliminated (for red elimination zones)
+  final Set<int> eliminationRows;
+  /// Columns that contain the digit being eliminated (for red elimination zones)
+  final Set<int> eliminationCols;
+  /// Boxes (0-8) that contain the digit being eliminated (for red elimination zones)
+  final Set<int> eliminationBoxes;
 
   const StrategyHighlight({
     required this.phase,
@@ -76,6 +100,9 @@ class StrategyHighlight {
     this.unitType,
     this.patternDigits = const {},
     this.eliminationCandidates = const {},
+    this.eliminationRows = const {},
+    this.eliminationCols = const {},
+    this.eliminationBoxes = const {},
   });
 }
 
@@ -183,11 +210,76 @@ class StrategySolver {
       if (cellsWithDigit.length == 1) {
         final (tr, tc) = cellsWithDigit.first;
         final eliminators = <(int, int)>{};
+        final eliminationRows = <int>{};
+        final eliminationCols = <int>{};
+        final eliminationBoxes = <int>{};
+
+        // For each empty cell in the unit (not the target), find which constraints block it
         for (final (r, c) in unitCells) {
           if ((r, c) == (tr, tc)) continue;
           if (board[r][c] != 0) continue;
+
+          // Add blockers (cells with the digit that block this cell)
           eliminators.addAll(_findBlockers(r, c, digit));
+
+          // Compute elimination zones based on constraints affecting THIS cell
+          // For row: mark cols and boxes that have the digit
+          // For column: mark rows and boxes that have the digit
+          // For box: mark rows and cols that have the digit
+          if (unitType == UnitType.row) {
+            // Check column - does digit exist in this column?
+            for (int rr = 0; rr < 9; rr++) {
+              if (board[rr][c] == digit) eliminationCols.add(c);
+            }
+            // Check box - does digit exist in this box?
+            final cellBox = (r ~/ 3) * 3 + (c ~/ 3);
+            for (int br = 0; br < 3; br++) {
+              for (int bc = 0; bc < 3; bc++) {
+                final boxIdx = br * 3 + bc;
+                if (boxIdx == cellBox) {
+                  for (int rr = br * 3; rr < br * 3 + 3; rr++) {
+                    for (int cc = bc * 3; cc < bc * 3 + 3; cc++) {
+                      if (board[rr][cc] == digit) {
+                        eliminationBoxes.add(boxIdx);
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          } else if (unitType == UnitType.column) {
+            // Check row - does digit exist in this row?
+            for (int cc = 0; cc < 9; cc++) {
+              if (board[r][cc] == digit) eliminationRows.add(r);
+            }
+            // Check box - does digit exist in this box?
+            final cellBox = (r ~/ 3) * 3 + (c ~/ 3);
+            for (int br = 0; br < 3; br++) {
+              for (int bc = 0; bc < 3; bc++) {
+                final boxIdx = br * 3 + bc;
+                if (boxIdx == cellBox) {
+                  for (int rr = br * 3; rr < br * 3 + 3; rr++) {
+                    for (int cc = bc * 3; cc < bc * 3 + 3; cc++) {
+                      if (board[rr][cc] == digit) {
+                        eliminationBoxes.add(boxIdx);
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          } else if (unitType == UnitType.box) {
+            // Check row - does digit exist in this row?
+            for (int cc = 0; cc < 9; cc++) {
+              if (board[r][cc] == digit) eliminationRows.add(r);
+            }
+            // Check column - does digit exist in this column?
+            for (int rr = 0; rr < 9; rr++) {
+              if (board[rr][c] == digit) eliminationCols.add(c);
+            }
+          }
         }
+
         return StrategyResult(
           type: StrategyType.hiddenSingle,
           phase: StrategyPhase.target,
@@ -197,6 +289,9 @@ class StrategySolver {
           patternDigits: {digit},
           eliminationCells: eliminators,
           targetCell: (tr, tc),
+          eliminationRows: eliminationRows,
+          eliminationCols: eliminationCols,
+          eliminationBoxes: eliminationBoxes,
         );
       }
     }
@@ -768,5 +863,8 @@ HiddenSingleResult? findHiddenSingle(List<List<int>> board) {
     unitCells: result.unitCells,
     eliminatorCells: result.eliminationCells,
     unitType: result.unitType!,
+    eliminationRows: result.eliminationRows,
+    eliminationCols: result.eliminationCols,
+    eliminationBoxes: result.eliminationBoxes,
   );
 }

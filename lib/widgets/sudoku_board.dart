@@ -123,11 +123,30 @@ class SudokuBoard extends StatelessWidget {
     final sh = strategyHighlight;
     if (sh != null) {
       final cell = (row, col);
+      // Compute box index (0-8) for this cell
+      final boxIndex = (row ~/ 3) * 3 + (col ~/ 3);
+
       if (sh.phase == StrategyPhase.target && sh.targetCell == cell) {
         bgColor = const Color(0xFFC8E6C9); // green-100 — place digit here
-      } else if (sh.phase == StrategyPhase.elimination &&
-          sh.eliminatorCells.contains(cell)) {
-        bgColor = const Color(0xFFFFE0B2); // amber-100 — blocks other cells
+      } else if (sh.phase == StrategyPhase.elimination) {
+        // Check for red elimination zones (rows, cols, boxes containing the digit)
+        final isInEliminationRow = sh.eliminationRows.contains(row);
+        final isInEliminationCol = sh.eliminationCols.contains(col);
+        final isInEliminationBox = sh.eliminationBoxes.contains(boxIndex);
+        final isInEliminationZone =
+            isInEliminationRow || isInEliminationCol || isInEliminationBox;
+
+        if (sh.eliminatorCells.contains(cell)) {
+          // Cells containing the digit — keep amber
+          bgColor = const Color(0xFFFFE0B2); // amber-100
+        } else if (isInEliminationZone) {
+          // Cells in elimination zones (row/col/box with the digit) — red
+          bgColor = const Color(0xFFFFCDD2); // red-100
+        } else if (sh.unitCells.contains(cell)) {
+          bgColor = const Color(0xFFE3F2FD); // blue-50 — scanning this unit
+        } else {
+          bgColor = Colors.white;
+        }
       } else if (sh.unitCells.contains(cell)) {
         bgColor = const Color(0xFFE3F2FD); // blue-50 — scanning this unit
       } else {
