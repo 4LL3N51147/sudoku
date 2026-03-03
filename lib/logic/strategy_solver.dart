@@ -365,18 +365,20 @@ class StrategySolver {
         if (cells1.length == 2 && cells2.length == 2) {
           final pairCells = cells1.toSet();
           if (pairCells.length == 2 && cells2.toSet().length == 2) {
-            // Found hidden pair - eliminate other digits from these cells
-            final eliminationCells = <(int, int)>{};
-            for (final cell in emptyCells) {
-              if (!pairCells.contains(cell)) {
-                final cellCand = candidates[cell]!;
-                if (cellCand.contains(d1) || cellCand.contains(d2)) {
-                  eliminationCells.add(cell);
-                }
+            // Found hidden pair - eliminate OTHER digits from these cells (not the pair digits)
+            // eliminationCells = the pair cells themselves
+            // eliminationCandidates = other candidates to remove from those cells
+            final eliminationCells = pairCells;
+            final eliminationCandidates = <(int, int), Set<int>>{};
+            for (final cell in pairCells) {
+              final cellCand = candidates[cell]!;
+              final otherDigits = cellCand.difference({d1, d2});
+              if (otherDigits.isNotEmpty) {
+                eliminationCandidates[cell] = otherDigits;
               }
             }
 
-            if (eliminationCells.isNotEmpty) {
+            if (eliminationCandidates.isNotEmpty) {
               return StrategyResult(
                 type: StrategyType.hiddenPair,
                 phase: StrategyPhase.elimination,
@@ -385,6 +387,7 @@ class StrategySolver {
                 patternCells: pairCells,
                 patternDigits: {d1, d2},
                 eliminationCells: eliminationCells,
+                eliminationCandidates: eliminationCandidates,
               );
             }
           }

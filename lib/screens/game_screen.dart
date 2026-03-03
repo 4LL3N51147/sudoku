@@ -442,7 +442,16 @@ class _GameScreenState extends State<GameScreen> {
           // Elimination phase - show which candidates to eliminate
           final digits = result.patternDigits;
           final cells = result.eliminationCells.length;
-          _hintMessage = 'Remove $digits from $cells cell${cells > 1 ? 's' : ''} in this $unitLabel';
+          // Different message for Naked vs Hidden Pair
+          final isNakedPair = result.type == StrategyType.nakedPair ||
+              result.type == StrategyType.nakedTriple ||
+              result.type == StrategyType.nakedQuad;
+          if (isNakedPair) {
+            _hintMessage = 'Remove $digits from $cells cell${cells > 1 ? 's' : ''} in this $unitLabel';
+          } else {
+            // Hidden Pair/Triple/Quad: remove OTHER candidates from these cells
+            _hintMessage = 'Remove other digits from $cells cell${cells > 1 ? 's' : ''} in this $unitLabel';
+          }
           _strategyHighlight = StrategyHighlight(
             phase: StrategyPhase.elimination,
             unitCells: result.unitCells,
