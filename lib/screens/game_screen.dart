@@ -477,9 +477,22 @@ class _GameScreenState extends State<GameScreen> {
       // Phase 2 complete - if there's a target cell, fill it
       if (result.targetCell != null) {
         final (row, col) = result.targetCell!;
+        // For Hidden Single, automatically fill the digit
+        // For other strategies, let the user fill manually
+        final bool shouldAutoFill = result.type == StrategyType.hiddenSingle;
         setState(() {
-          // For most strategies, we need to determine which digit to fill
-          // For now, just highlight the cell - the user can fill it
+          if (shouldAutoFill) {
+            // Fill the cell automatically for Hidden Single
+            final oldValue = _board[row][col];
+            _undoStack.add((
+              row: row,
+              col: col,
+              oldValue: oldValue,
+              newValue: result.patternDigits.first,
+            ));
+            _board[row][col] = result.patternDigits.first;
+            _updateErrors();
+          }
           _strategyHighlight = null;
           _hintMessage = null;
           _hintPhase = null;
@@ -487,7 +500,12 @@ class _GameScreenState extends State<GameScreen> {
           _isAnimating = false;
           _selectedRow = row;
           _selectedCol = col;
+          if (shouldAutoFill && _checkWin()) {
+            _isCompleted = true;
+            _timer?.cancel();
+          }
         });
+        if (_isCompleted) _showWinDialog();
       } else {
         // No target cell (elimination only) - just clear the hint
         setState(() {
