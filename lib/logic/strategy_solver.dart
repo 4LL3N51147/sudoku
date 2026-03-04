@@ -553,6 +553,15 @@ class StrategySolver {
             }
 
             if (eliminationCells.isNotEmpty) {
+              // Build elimination candidates map: which digits to remove from which cells
+              final eliminationCandidates = <(int, int), Set<int>>{};
+              for (final cell in eliminationCells) {
+                final cellCand = candidates[cell]!;
+                final digitsToRemove = cellCand.intersection(combinedCandidates);
+                if (digitsToRemove.isNotEmpty) {
+                  eliminationCandidates[cell] = digitsToRemove;
+                }
+              }
               return StrategyResult(
                 type: StrategyType.nakedTriple,
                 phase: StrategyPhase.elimination,
@@ -561,6 +570,7 @@ class StrategySolver {
                 patternCells: triple.toSet(),
                 patternDigits: combinedCandidates,
                 eliminationCells: eliminationCells,
+                eliminationCandidates: eliminationCandidates,
               );
             }
           }
@@ -632,20 +642,19 @@ class StrategySolver {
               cells3.toSet().length == 3 &&
               cells2.toSet().containsAll(tripleCells) &&
               cells3.toSet().containsAll(tripleCells)) {
-            // Found hidden triple - eliminate these digits from other cells
-            final eliminationCells = <(int, int)>{};
-            for (final cell in emptyCells) {
-              if (!tripleCells.contains(cell)) {
-                final cellCand = candidates[cell]!;
-                if (cellCand.contains(d1) ||
-                    cellCand.contains(d2) ||
-                    cellCand.contains(d3)) {
-                  eliminationCells.add(cell);
-                }
+            // Found hidden triple - eliminate OTHER digits from these triple cells
+            // These 3 cells MUST contain {d1, d2, d3}, so remove other candidates
+            final eliminationCells = tripleCells;
+            final eliminationCandidates = <(int, int), Set<int>>{};
+            for (final cell in tripleCells) {
+              final cellCand = candidates[cell]!;
+              final otherDigits = cellCand.difference({d1, d2, d3});
+              if (otherDigits.isNotEmpty) {
+                eliminationCandidates[cell] = otherDigits;
               }
             }
 
-            if (eliminationCells.isNotEmpty) {
+            if (eliminationCandidates.isNotEmpty) {
               return StrategyResult(
                 type: StrategyType.hiddenTriple,
                 phase: StrategyPhase.elimination,
@@ -654,6 +663,7 @@ class StrategySolver {
                 patternCells: tripleCells,
                 patternDigits: {d1, d2, d3},
                 eliminationCells: eliminationCells,
+                eliminationCandidates: eliminationCandidates,
               );
             }
           }
@@ -730,6 +740,15 @@ class StrategySolver {
               }
 
               if (eliminationCells.isNotEmpty) {
+                // Build elimination candidates map: which digits to remove from which cells
+                final eliminationCandidates = <(int, int), Set<int>>{};
+                for (final cell in eliminationCells) {
+                  final cellCand = candidates[cell]!;
+                  final digitsToRemove = cellCand.intersection(combinedCandidates);
+                  if (digitsToRemove.isNotEmpty) {
+                    eliminationCandidates[cell] = digitsToRemove;
+                  }
+                }
                 return StrategyResult(
                   type: StrategyType.nakedQuad,
                   phase: StrategyPhase.elimination,
@@ -738,6 +757,7 @@ class StrategySolver {
                   patternCells: quad.toSet(),
                   patternDigits: combinedCandidates,
                   eliminationCells: eliminationCells,
+                  eliminationCandidates: eliminationCandidates,
                 );
               }
             }
@@ -815,21 +835,19 @@ class StrategySolver {
                 cells2.toSet().containsAll(quadCells) &&
                 cells3.toSet().containsAll(quadCells) &&
                 cells4.toSet().containsAll(quadCells)) {
-              // Found hidden quad - eliminate these digits from other cells
-              final eliminationCells = <(int, int)>{};
-              for (final cell in emptyCells) {
-                if (!quadCells.contains(cell)) {
-                  final cellCand = candidates[cell]!;
-                  if (cellCand.contains(d1) ||
-                      cellCand.contains(d2) ||
-                      cellCand.contains(d3) ||
-                      cellCand.contains(d4)) {
-                    eliminationCells.add(cell);
-                  }
+              // Found hidden quad - eliminate OTHER digits from these quad cells
+              // These 4 cells MUST contain {d1, d2, d3, d4}, so remove other candidates
+              final eliminationCells = quadCells;
+              final eliminationCandidates = <(int, int), Set<int>>{};
+              for (final cell in quadCells) {
+                final cellCand = candidates[cell]!;
+                final otherDigits = cellCand.difference({d1, d2, d3, d4});
+                if (otherDigits.isNotEmpty) {
+                  eliminationCandidates[cell] = otherDigits;
                 }
               }
 
-              if (eliminationCells.isNotEmpty) {
+              if (eliminationCandidates.isNotEmpty) {
                 return StrategyResult(
                   type: StrategyType.hiddenQuad,
                   phase: StrategyPhase.elimination,
@@ -838,6 +856,7 @@ class StrategySolver {
                   patternCells: quadCells,
                   patternDigits: {d1, d2, d3, d4},
                   eliminationCells: eliminationCells,
+                  eliminationCandidates: eliminationCandidates,
                 );
               }
             }

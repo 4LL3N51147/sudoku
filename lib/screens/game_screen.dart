@@ -444,44 +444,70 @@ class _GameScreenState extends State<GameScreen> {
               }
             : 'board';
 
+        // Determine strategy type for messaging
+        final isNaked = result.type == StrategyType.nakedPair ||
+            result.type == StrategyType.nakedTriple ||
+            result.type == StrategyType.nakedQuad;
+        final isHidden = result.type == StrategyType.hiddenPair ||
+            result.type == StrategyType.hiddenTriple ||
+            result.type == StrategyType.hiddenQuad;
+        final digits = result.patternDigits;
+        final numCells = result.patternCells.length;
+
         if (_hintPhase == 1) {
-          // Elimination phase - show which candidates to eliminate
-          final digits = result.patternDigits;
-          final cells = result.eliminationCells.length;
-          // Different message for Naked vs Hidden Pair
-          final isNakedPair = result.type == StrategyType.nakedPair ||
-              result.type == StrategyType.nakedTriple ||
-              result.type == StrategyType.nakedQuad;
-          if (isNakedPair) {
-            _hintMessage = 'Remove $digits from $cells cell${cells > 1 ? 's' : ''} in this $unitLabel';
+          // Phase 1: Show the pattern - what was found
+          if (result.type == StrategyType.nakedPair) {
+            // Naked Pair: exactly the same 2 candidates in 2 cells
+            _hintMessage = 'Naked Pair $digits: these 2 cells both have only $digits';
+          } else if (result.type == StrategyType.nakedTriple) {
+            // Naked Triple: 3 cells together have exactly 3 candidates
+            _hintMessage = 'Naked Triple: these 3 cells together have only $digits';
+          } else if (result.type == StrategyType.nakedQuad) {
+            // Naked Quad: 4 cells together have exactly 4 candidates
+            _hintMessage = 'Naked Quad: these 4 cells together have only $digits';
+          } else if (result.type == StrategyType.hiddenPair) {
+            // Hidden Pair: only these 2 cells can have these 2 digits
+            _hintMessage = 'Hidden Pair: $digits can only go in these 2 cells';
+          } else if (result.type == StrategyType.hiddenTriple) {
+            // Hidden Triple: only these 3 cells can have these 3 digits
+            _hintMessage = 'Hidden Triple: $digits can only go in these 3 cells';
+          } else if (result.type == StrategyType.hiddenQuad) {
+            // Hidden Quad: only these 4 cells can have these 4 digits
+            _hintMessage = 'Hidden Quad: $digits can only go in these 4 cells';
           } else {
-            // Hidden Pair/Triple/Quad: remove OTHER candidates from these cells
-            _hintMessage = 'Remove other digits from $cells cell${cells > 1 ? 's' : ''} in this $unitLabel';
+            _hintMessage = 'Found $digits in this $unitLabel';
           }
+          // Highlight the pattern cells
+          _strategyHighlight = StrategyHighlight(
+            phase: StrategyPhase.elimination,
+            unitCells: result.unitCells,
+            patternCells: result.patternCells,
+            patternDigits: result.patternDigits,
+            eliminationCandidates: result.eliminationCandidates,
+            unitType: result.unitType,
+          );
+        } else if (_hintPhase == 2) {
+          // Phase 2: Show elimination - what to remove
+          final elimCount = result.eliminationCells.length;
+          if (isNaked) {
+            // Naked: remove these digits from OTHER cells in unit
+            _hintMessage = 'Remove $digits from $elimCount other cell${elimCount > 1 ? 's' : ''} in this $unitLabel';
+          } else if (isHidden) {
+            // Hidden: remove OTHER candidates from these cells
+            _hintMessage = 'Remove other candidates from these $numCells cells';
+          } else {
+            _hintMessage = '${result.patternDigits} can only go in ${result.patternCells.length} cell(s)!';
+          }
+          // Show elimination
           _strategyHighlight = StrategyHighlight(
             phase: StrategyPhase.elimination,
             unitCells: result.unitCells,
             eliminatorCells: result.eliminationCells,
-            patternDigits: result.patternDigits,
-            eliminationCandidates: result.eliminationCandidates,
-            unitType: result.unitType,
-            eliminationRows: result.eliminationRows,
-            eliminationCols: result.eliminationCols,
-            eliminationBoxes: result.eliminationBoxes,
-          );
-        } else if (_hintPhase == 2) {
-          // Target phase
-          _hintMessage = '${result.patternDigits} can only go in ${result.patternCells.length} cell(s)!';
-          _strategyHighlight = StrategyHighlight(
-            phase: StrategyPhase.target,
-            unitCells: result.unitCells,
             patternCells: result.patternCells,
             patternDigits: result.patternDigits,
+            eliminationCandidates: result.eliminationCandidates,
             targetCell: result.targetCell,
             unitType: result.unitType,
-            eliminationRows: result.eliminationRows,
-            eliminationCols: result.eliminationCols,
-            eliminationBoxes: result.eliminationBoxes,
           );
         }
       });

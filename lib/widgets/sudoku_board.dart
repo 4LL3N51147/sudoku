@@ -136,8 +136,16 @@ class SudokuBoard extends StatelessWidget {
         final isInEliminationZone =
             isInEliminationRow || isInEliminationCol || isInEliminationBox;
 
-        if (sh.eliminatorCells.contains(cell)) {
-          // Cells containing the digit — keep amber
+        // Check if this is a pattern cell (the pair/triple/quad cells)
+        final isPatternCell = sh.patternCells.contains(cell);
+        // Check if this is an elimination cell (other cells where candidates get removed)
+        final isEliminationCell = sh.eliminatorCells.contains(cell);
+
+        if (isPatternCell) {
+          // The pair/triple/quad cells - highlight in purple for visibility
+          bgColor = const Color(0xFFCE93D8); // purple-200
+        } else if (isEliminationCell) {
+          // Cells where candidates are being eliminated
           bgColor = const Color(0xFFFFE0B2); // amber-100
         } else if (isInEliminationZone) {
           // Cells in elimination zones (row/col/box with the digit) — red
