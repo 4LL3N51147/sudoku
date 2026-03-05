@@ -207,6 +207,7 @@ class _GameScreenState extends State<GameScreen> {
       _board[_selectedRow][_selectedCol] = 0;
       _updateErrors();
       _candidates = computeCandidates(_board);
+      _completedDigits = _calculateCompletedDigits();
     });
   }
 
@@ -256,6 +257,7 @@ class _GameScreenState extends State<GameScreen> {
       _selectedRow = move.row;
       _selectedCol = move.col;
       _updateErrors();
+      _completedDigits = _calculateCompletedDigits();
     });
   }
 
@@ -269,6 +271,20 @@ class _GameScreenState extends State<GameScreen> {
         }
       }
     }
+  }
+
+  Set<int> _calculateCompletedDigits() {
+    final completed = <int>{};
+    for (int digit = 1; digit <= 9; digit++) {
+      int count = 0;
+      for (int r = 0; r < 9; r++) {
+        for (int c = 0; c < 9; c++) {
+          if (_board[r][c] == digit) count++;
+        }
+      }
+      if (count >= 9) completed.add(digit);
+    }
+    return completed;
   }
 
   bool _checkWin() {
@@ -367,6 +383,7 @@ class _GameScreenState extends State<GameScreen> {
         ));
         _board[result.row][result.col] = result.digit;
         _updateErrors();
+        _completedDigits = _calculateCompletedDigits();
         _strategyHighlight = null;
         _hintMessage = null;
         _hintPhase = null;
