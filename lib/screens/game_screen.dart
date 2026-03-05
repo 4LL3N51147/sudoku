@@ -195,6 +195,7 @@ class _GameScreenState extends State<GameScreen> {
       ));
       _board[_selectedRow][_selectedCol] = num;
       _updateErrors();
+      _candidates = computeCandidates(_board);
       if (_checkWin()) {
         _isCompleted = true;
         _timer?.cancel();
@@ -217,6 +218,7 @@ class _GameScreenState extends State<GameScreen> {
       ));
       _board[_selectedRow][_selectedCol] = 0;
       _updateErrors();
+      _candidates = computeCandidates(_board);
     });
   }
 
@@ -558,6 +560,18 @@ class _GameScreenState extends State<GameScreen> {
             _board[row][col] = result.patternDigits.first;
             _updateErrors();
           }
+          // Apply elimination candidates to _candidates
+          if (result.eliminationCandidates.isNotEmpty) {
+            final updated = Map<(int, int), Set<int>>.from(_candidates);
+            for (final entry in result.eliminationCandidates.entries) {
+              final cell = entry.key;
+              final digits = entry.value;
+              if (updated.containsKey(cell)) {
+                updated[cell] = updated[cell]!.difference(digits);
+              }
+            }
+            _candidates = updated;
+          }
           _strategyHighlight = null;
           _hintMessage = null;
           _hintPhase = null;
@@ -572,8 +586,19 @@ class _GameScreenState extends State<GameScreen> {
         });
         if (_isCompleted) _showWinDialog();
       } else {
-        // No target cell (elimination only) - just clear the hint
+        // Elimination only - apply eliminations to candidates
         setState(() {
+          if (result.eliminationCandidates.isNotEmpty) {
+            final updated = Map<(int, int), Set<int>>.from(_candidates);
+            for (final entry in result.eliminationCandidates.entries) {
+              final cell = entry.key;
+              final digits = entry.value;
+              if (updated.containsKey(cell)) {
+                updated[cell] = updated[cell]!.difference(digits);
+              }
+            }
+            _candidates = updated;
+          }
           _strategyHighlight = null;
           _hintMessage = null;
           _hintPhase = null;
