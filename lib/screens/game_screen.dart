@@ -339,6 +339,11 @@ class _GameScreenState extends State<GameScreen> {
         ));
         _board[result.row][result.col] = result.digit;
         _updateErrors();
+        _strategyHighlight = null;
+        _hintMessage = null;
+        _hintPhase = null;
+        _currentHintResult = null;
+        _isAnimating = false;
         _selectedRow = result.row;
         _selectedCol = result.col;
         if (_checkWin()) {
