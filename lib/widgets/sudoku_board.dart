@@ -155,8 +155,15 @@ class SudokuBoard extends StatelessWidget {
         } else {
           bgColor = Colors.white;
         }
-      } else if (sh.unitCells.contains(cell)) {
-        bgColor = const Color(0xFFE3F2FD); // blue-50 — scanning this unit
+      } else if (sh.phase == StrategyPhase.scan) {
+        // In scan phase, highlight pattern cells in purple, unit in blue
+        if (sh.patternCells.contains(cell)) {
+          bgColor = const Color(0xFFCE93D8); // purple-200 — pattern cells
+        } else if (sh.unitCells.contains(cell)) {
+          bgColor = const Color(0xFFE3F2FD); // blue-50 — scanning this unit
+        } else {
+          bgColor = Colors.white;
+        }
       } else {
         bgColor = Colors.white;
       }

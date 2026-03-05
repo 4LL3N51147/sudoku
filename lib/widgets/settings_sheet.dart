@@ -20,6 +20,7 @@ class _SettingsSheetState extends State<SettingsSheet> {
   late int _scanMs;
   late int _eliminationMs;
   late int _targetMs;
+  late bool _skipAnimation;
 
   @override
   void initState() {
@@ -27,6 +28,7 @@ class _SettingsSheetState extends State<SettingsSheet> {
     _scanMs = widget.settings.hintScanMs;
     _eliminationMs = widget.settings.hintEliminationMs;
     _targetMs = widget.settings.hintTargetMs;
+    _skipAnimation = widget.settings.skipHintAnimation;
   }
 
   @override
@@ -37,23 +39,27 @@ class _SettingsSheetState extends State<SettingsSheet> {
         _scanMs = widget.settings.hintScanMs;
         _eliminationMs = widget.settings.hintEliminationMs;
         _targetMs = widget.settings.hintTargetMs;
+        _skipAnimation = widget.settings.skipHintAnimation;
       });
     }
   }
 
-  void _update({int? scan, int? elimination, int? target}) {
+  void _update({int? scan, int? elimination, int? target, bool? skipAnimation}) {
     final newScan = scan ?? _scanMs;
     final newElimination = elimination ?? _eliminationMs;
     final newTarget = target ?? _targetMs;
+    final newSkipAnimation = skipAnimation ?? _skipAnimation;
     setState(() {
       _scanMs = newScan;
       _eliminationMs = newElimination;
       _targetMs = newTarget;
+      _skipAnimation = newSkipAnimation;
     });
     widget.onChanged(AppSettings(
       hintScanMs: newScan,
       hintEliminationMs: newElimination,
       hintTargetMs: newTarget,
+      skipHintAnimation: newSkipAnimation,
     ));
   }
 
@@ -125,6 +131,24 @@ class _SettingsSheetState extends State<SettingsSheet> {
             title: 'Target',
             value: _targetMs,
             onChanged: (v) => _update(target: v),
+          ),
+          Row(
+            children: [
+              const Expanded(
+                child: Text('Skip Animation', style: TextStyle(fontSize: 14)),
+              ),
+              Switch(
+                value: _skipAnimation,
+                onChanged: (v) => _update(skipAnimation: v),
+                activeTrackColor: const Color(0xFF1A237E).withValues(alpha: 0.5),
+                thumbColor: WidgetStateProperty.resolveWith((states) {
+                  if (states.contains(WidgetState.selected)) {
+                    return const Color(0xFF1A237E);
+                  }
+                  return null;
+                }),
+              ),
+            ],
           ),
           const SizedBox(height: 24),
           const Text(
