@@ -943,6 +943,7 @@ class _GameScreenState extends State<GameScreen> {
           child: NumberPad(
             onNumber: _onNumberInput,
             onErase: _onErase,
+            disabledDigits: _completedDigits,
           ),
         ),
         const SizedBox(height: 12),
@@ -986,6 +987,7 @@ class _GameScreenState extends State<GameScreen> {
           child: NumberPad(
             onNumber: _onNumberInput,
             onErase: _onErase,
+            disabledDigits: _completedDigits,
           ),
         ),
         const SizedBox(height: 12),
