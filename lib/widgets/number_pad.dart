@@ -24,7 +24,7 @@ class NumberPad extends StatelessWidget {
             final isDisabled = disabledDigits?.contains(digit) ?? false;
             return _PadButton(
               label: '$digit',
-              onTap: isDisabled ? () {} : () => onNumber(digit),
+              onTap: () => onNumber(digit),
               isDisabled: isDisabled,
             );
           },
