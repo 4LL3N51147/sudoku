@@ -327,6 +327,29 @@ class _GameScreenState extends State<GameScreen> {
       UnitType.box => 'box',
     };
 
+    // If skip animation is enabled, fill immediately with no UI
+    if (_settings.skipHintAnimation) {
+      setState(() {
+        final oldValue = _board[result.row][result.col];
+        _undoStack.add((
+          row: result.row,
+          col: result.col,
+          oldValue: oldValue,
+          newValue: result.digit,
+        ));
+        _board[result.row][result.col] = result.digit;
+        _updateErrors();
+        _selectedRow = result.row;
+        _selectedCol = result.col;
+        if (_checkWin()) {
+          _isCompleted = true;
+          _timer?.cancel();
+        }
+      });
+      if (_isCompleted) _showWinDialog();
+      return;
+    }
+
     // Phase 0 — scan: highlight the unit
     setState(() {
       _isAnimating = true;
@@ -457,33 +480,32 @@ class _GameScreenState extends State<GameScreen> {
         if (_hintPhase == 1) {
           // Phase 1: Show the pattern - what was found
           if (result.type == StrategyType.nakedPair) {
-            // Naked Pair: exactly the same 2 candidates in 2 cells
-            _hintMessage = 'Naked Pair $digits: these 2 cells both have only $digits';
+            // Naked Pair: these 2 digits are locked in these 2 cells
+            _hintMessage = 'Naked Pair: $digits are locked in these 2 cells';
           } else if (result.type == StrategyType.nakedTriple) {
-            // Naked Triple: 3 cells together have exactly 3 candidates
-            _hintMessage = 'Naked Triple: these 3 cells together have only $digits';
+            // Naked Triple: these 3 digits are locked in these 3 cells
+            _hintMessage = 'Naked Triple: $digits are locked in these 3 cells';
           } else if (result.type == StrategyType.nakedQuad) {
-            // Naked Quad: 4 cells together have exactly 4 candidates
-            _hintMessage = 'Naked Quad: these 4 cells together have only $digits';
+            // Naked Quad: these 4 digits are locked in these 4 cells
+            _hintMessage = 'Naked Quad: $digits are locked in these 4 cells';
           } else if (result.type == StrategyType.hiddenPair) {
             // Hidden Pair: only these 2 cells can have these 2 digits
-            _hintMessage = 'Hidden Pair: $digits can only go in these 2 cells';
+            _hintMessage = 'Hidden Pair: $digits can ONLY go in these 2 cells';
           } else if (result.type == StrategyType.hiddenTriple) {
             // Hidden Triple: only these 3 cells can have these 3 digits
-            _hintMessage = 'Hidden Triple: $digits can only go in these 3 cells';
+            _hintMessage = 'Hidden Triple: $digits can ONLY go in these 3 cells';
           } else if (result.type == StrategyType.hiddenQuad) {
             // Hidden Quad: only these 4 cells can have these 4 digits
-            _hintMessage = 'Hidden Quad: $digits can only go in these 4 cells';
+            _hintMessage = 'Hidden Quad: $digits can ONLY go in these 4 cells';
           } else {
             _hintMessage = 'Found $digits in this $unitLabel';
           }
-          // Highlight the pattern cells
+          // Highlight the pattern cells (no elimination strikethrough in this phase)
           _strategyHighlight = StrategyHighlight(
-            phase: StrategyPhase.elimination,
+            phase: StrategyPhase.scan,
             unitCells: result.unitCells,
             patternCells: result.patternCells,
             patternDigits: result.patternDigits,
-            eliminationCandidates: result.eliminationCandidates,
             unitType: result.unitType,
           );
         } else if (_hintPhase == 2) {
@@ -493,7 +515,7 @@ class _GameScreenState extends State<GameScreen> {
             // Naked: remove these digits from OTHER cells in unit
             _hintMessage = 'Remove $digits from $elimCount other cell${elimCount > 1 ? 's' : ''} in this $unitLabel';
           } else if (isHidden) {
-            // Hidden: remove OTHER candidates from these cells
+            // Hidden: remove OTHER candidates from these $numCells cells
             _hintMessage = 'Remove other candidates from these $numCells cells';
           } else {
             _hintMessage = '${result.patternDigits} can only go in ${result.patternCells.length} cell(s)!';
@@ -673,6 +695,35 @@ class _GameScreenState extends State<GameScreen> {
             UnitType.box => 'box',
           }
         : 'board';
+
+    // If skip animation is enabled, go directly to elimination phase
+    if (_settings.skipHintAnimation) {
+      final isNaked = result.type == StrategyType.nakedPair ||
+          result.type == StrategyType.nakedTriple ||
+          result.type == StrategyType.nakedQuad;
+      final digits = result.patternDigits;
+      final elimCount = result.eliminationCells.length;
+
+      setState(() {
+        _isAnimating = true;
+        _hintPhase = 2; // Elimination phase
+        if (isNaked) {
+          _hintMessage = 'Remove $digits from $elimCount other cell${elimCount > 1 ? 's' : ''} in this $unitLabel';
+        } else {
+          _hintMessage = 'Remove other candidates from these ${result.patternCells.length} cells';
+        }
+        _strategyHighlight = StrategyHighlight(
+          phase: StrategyPhase.elimination,
+          unitCells: result.unitCells,
+          patternCells: result.patternCells,
+          patternDigits: result.patternDigits,
+          eliminatorCells: result.eliminationCells,
+          eliminationCandidates: result.eliminationCandidates,
+          unitType: result.unitType,
+        );
+      });
+      return;
+    }
 
     // For non-HiddenSingle, show candidates phase first
     if (type != StrategyType.hiddenSingle) {
