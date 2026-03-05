@@ -49,6 +49,11 @@ class _GameScreenState extends State<GameScreen> {
   Set<int> _completedDigits = {};  // Track digits placed in all 9 blocks
   AppSettings _settings = const AppSettings();
 
+  Set<int>? _getSelectedCellCandidates() {
+    if (_selectedRow < 0 || _selectedCol < 0) return null;
+    return _candidates[(_selectedRow, _selectedCol)];
+  }
+
   @override
   void initState() {
     super.initState();
@@ -928,6 +933,7 @@ class _GameScreenState extends State<GameScreen> {
               onCellTap: _onCellTap,
               strategyHighlight: _strategyHighlight,
               candidates: _candidates,
+              matchingCandidates: _getSelectedCellCandidates(),
             ),
           ),
         ),
@@ -971,6 +977,7 @@ class _GameScreenState extends State<GameScreen> {
                 onCellTap: _onCellTap,
                 strategyHighlight: _strategyHighlight,
                 candidates: _candidates,
+                matchingCandidates: _getSelectedCellCandidates(),
               ),
             ),
           ),
