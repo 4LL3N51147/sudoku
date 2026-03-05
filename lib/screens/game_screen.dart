@@ -701,32 +701,62 @@ class _GameScreenState extends State<GameScreen> {
           }
         : 'board';
 
-    // If skip animation is enabled, go directly to elimination phase
+    // If skip animation is enabled, apply immediately with no UI
     if (_settings.skipHintAnimation) {
-      final isNaked = result.type == StrategyType.nakedPair ||
-          result.type == StrategyType.nakedTriple ||
-          result.type == StrategyType.nakedQuad;
-      final digits = result.patternDigits;
-      final elimCount = result.eliminationCells.length;
-
-      setState(() {
-        _isAnimating = true;
-        _hintPhase = 2; // Elimination phase
-        if (isNaked) {
-          _hintMessage = 'Remove $digits from $elimCount other cell${elimCount > 1 ? 's' : ''} in this $unitLabel';
-        } else {
-          _hintMessage = 'Remove other candidates from these ${result.patternCells.length} cells';
+      if (type == StrategyType.hiddenSingle && result.targetCell != null) {
+        // Hidden Single: fill the cell immediately
+        final (row, col) = result.targetCell!;
+        setState(() {
+          final oldValue = _board[row][col];
+          _undoStack.add((
+            row: row,
+            col: col,
+            oldValue: oldValue,
+            newValue: result.patternDigits.first,
+          ));
+          _board[row][col] = result.patternDigits.first;
+          _updateErrors();
+          _strategyHighlight = null;
+          _hintMessage = null;
+          _hintPhase = null;
+          _currentStrategyResult = null;
+          _isAnimating = false;
+          _selectedRow = row;
+          _selectedCol = col;
+          if (_checkWin()) {
+            _isCompleted = true;
+            _timer?.cancel();
+          }
+        });
+        if (_isCompleted) _showWinDialog();
+      } else {
+        // Elimination strategy: apply eliminations to candidates
+        setState(() {
+          final updated = Map<(int, int), Set<int>>.from(_candidates);
+          for (final entry in result.eliminationCandidates.entries) {
+            final cell = entry.key;
+            final digits = entry.value;
+            if (updated.containsKey(cell)) {
+              updated[cell] = updated[cell]!.difference(digits);
+            }
+          }
+          _candidates = updated;
+          _strategyHighlight = null;
+          _hintMessage = null;
+          _hintPhase = null;
+          _currentStrategyResult = null;
+          _isAnimating = false;
+        });
+        final strategyName = type.name.replaceAllMapped(
+          RegExp(r'([A-Z])'),
+          (m) => ' ${m.group(1)}',
+        ).trim();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('$strategyName applied — candidates updated')),
+          );
         }
-        _strategyHighlight = StrategyHighlight(
-          phase: StrategyPhase.elimination,
-          unitCells: result.unitCells,
-          patternCells: result.patternCells,
-          patternDigits: result.patternDigits,
-          eliminatorCells: result.eliminationCells,
-          eliminationCandidates: result.eliminationCandidates,
-          unitType: result.unitType,
-        );
-      });
+      }
       return;
     }
 
