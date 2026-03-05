@@ -487,12 +487,7 @@ class _GameScreenState extends State<GameScreen> {
         _isAnimating = false;
         _selectedRow = result.row;
         _selectedCol = result.col;
-        if (_checkWin()) {
-          _isCompleted = true;
-          _timer?.cancel();
-        }
       });
-      if (_isCompleted) _showWinDialog();
     }
   }
 
@@ -606,12 +601,7 @@ class _GameScreenState extends State<GameScreen> {
           _isAnimating = false;
           _selectedRow = row;
           _selectedCol = col;
-          if (shouldAutoFill && _checkWin()) {
-            _isCompleted = true;
-            _timer?.cancel();
-          }
         });
-        if (_isCompleted) _showWinDialog();
       } else {
         // Elimination only - apply eliminations to candidates
         setState(() {
