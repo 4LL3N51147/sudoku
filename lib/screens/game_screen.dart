@@ -703,8 +703,9 @@ class _GameScreenState extends State<GameScreen> {
 
     // If skip animation is enabled, apply immediately with no UI
     if (_settings.skipHintAnimation) {
-      if (type == StrategyType.hiddenSingle && result.targetCell != null) {
-        // Hidden Single: fill the cell immediately
+      if (type == StrategyType.hiddenSingle) {
+        // Hidden Single always has a targetCell (solver contract)
+        assert(result.targetCell != null, 'Hidden Single result must have a targetCell');
         final (row, col) = result.targetCell!;
         setState(() {
           final oldValue = _board[row][col];
