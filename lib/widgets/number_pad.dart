@@ -63,7 +63,7 @@ class _PadButton extends StatelessWidget {
           height: 50,
           decoration: BoxDecoration(
             color: isDisabled
-                ? const Color(0xFFE8EAF6).withOpacity(0.4)
+                ? const Color(0xFFE8EAF6).withValues(alpha: 0.4)
                 : const Color(0xFFE8EAF6),
             borderRadius: BorderRadius.circular(10),
           ),
