@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 class NumberPad extends StatelessWidget {
   final void Function(int) onNumber;
   final void Function() onErase;
+  final Set<int>? disabledDigits;
 
   const NumberPad({
     super.key,
     required this.onNumber,
     required this.onErase,
+    this.disabledDigits,
   });
 
   @override
@@ -17,10 +19,15 @@ class NumberPad extends StatelessWidget {
       children: [
         ...List.generate(
           9,
-          (i) => _PadButton(
-            label: '${i + 1}',
-            onTap: () => onNumber(i + 1),
-          ),
+          (i) {
+            final digit = i + 1;
+            final isDisabled = disabledDigits?.contains(digit) ?? false;
+            return _PadButton(
+              label: '$digit',
+              onTap: isDisabled ? () {} : () => onNumber(digit),
+              isDisabled: isDisabled,
+            );
+          },
         ),
         _PadButton(
           icon: Icons.backspace_outlined,
@@ -35,11 +42,13 @@ class _PadButton extends StatelessWidget {
   final String? label;
   final IconData? icon;
   final VoidCallback onTap;
+  final bool isDisabled;
 
   const _PadButton({
     this.label,
     this.icon,
     required this.onTap,
+    this.isDisabled = false,
   });
 
   @override
@@ -47,13 +56,15 @@ class _PadButton extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: onTap,
+        onTap: isDisabled ? null : onTap,
         borderRadius: BorderRadius.circular(10),
         child: Container(
           width: 34,
           height: 50,
           decoration: BoxDecoration(
-            color: const Color(0xFFE8EAF6),
+            color: isDisabled
+                ? const Color(0xFFE8EAF6).withOpacity(0.4)
+                : const Color(0xFFE8EAF6),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Center(
