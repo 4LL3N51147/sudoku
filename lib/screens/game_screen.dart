@@ -479,15 +479,7 @@ class _GameScreenState extends State<GameScreen> {
     } else {
       // Phase 2 complete - fill the cell
       setState(() {
-        final oldValue = _board[result.row][result.col];
-        _undoStack.add((
-          row: result.row,
-          col: result.col,
-          oldValue: oldValue,
-          newValue: result.digit,
-        ));
-        _board[result.row][result.col] = result.digit;
-        _updateErrors();
+        _fillCell(result.row, result.col, result.digit);
         _strategyHighlight = null;
         _hintMessage = null;
         _hintPhase = null;
@@ -593,15 +585,7 @@ class _GameScreenState extends State<GameScreen> {
         setState(() {
           if (shouldAutoFill) {
             // Fill the cell automatically for Hidden Single
-            final oldValue = _board[row][col];
-            _undoStack.add((
-              row: row,
-              col: col,
-              oldValue: oldValue,
-              newValue: result.patternDigits.first,
-            ));
-            _board[row][col] = result.patternDigits.first;
-            _updateErrors();
+            _fillCell(row, col, result.patternDigits.first);
           }
           // Apply elimination candidates to _candidates
           if (result.eliminationCandidates.isNotEmpty) {
