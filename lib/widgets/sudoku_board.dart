@@ -11,6 +11,7 @@ class SudokuBoard extends StatelessWidget {
   final void Function(int row, int col) onCellTap;
   final StrategyHighlight? strategyHighlight;
   final Map<(int, int), Set<int>>? candidates;
+  final Set<int>? matchingCandidates;
 
   const SudokuBoard({
     super.key,
@@ -23,6 +24,7 @@ class SudokuBoard extends StatelessWidget {
     required this.onCellTap,
     this.strategyHighlight,
     this.candidates,
+    this.matchingCandidates,
   });
 
   bool _isHighlighted(int row, int col) {
@@ -232,6 +234,8 @@ class SudokuBoard extends StatelessWidget {
         final hasCandidate = cellCandidates.contains(digit);
         final isEliminated = _isEliminated(row, col, digit);
 
+        final isMatching = matchingCandidates?.contains(digit) ?? false;
+
         return Center(
           child: isEliminated
               ? Stack(
@@ -251,11 +255,19 @@ class SudokuBoard extends StatelessWidget {
                     ),
                   ],
                 )
-              : Text(
-                  '$digit',
-                  style: TextStyle(
-                    fontSize: 9,
-                    color: hasCandidate ? Colors.blue.shade700 : Colors.transparent,
+              : Container(
+                  decoration: BoxDecoration(
+                    color: isMatching ? const Color(0xFFBBDEFB) : null,  // blue-100
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                  padding: const EdgeInsets.all(1),
+                  child: Text(
+                    '$digit',
+                    style: TextStyle(
+                      fontSize: 9,
+                      color: hasCandidate ? Colors.blue.shade700 : Colors.transparent,
+                      fontWeight: isMatching ? FontWeight.bold : FontWeight.normal,
+                    ),
                   ),
                 ),
         );
