@@ -46,6 +46,7 @@ class _GameScreenState extends State<GameScreen> {
   StrategyResult? _currentStrategyResult;
   Map<(int, int), Set<int>> _candidates = {};
   final List<_Move> _undoStack = [];
+  Set<int> _completedDigits = {};  // Track digits placed in all 9 blocks
   AppSettings _settings = const AppSettings();
 
   @override
@@ -185,22 +186,9 @@ class _GameScreenState extends State<GameScreen> {
     if (_isPaused || _isAnimating || _isCompleted) return;
     if (_selectedRow < 0 || _selectedCol < 0) return;
     if (_isGiven[_selectedRow][_selectedCol]) return;
-    if (_board[_selectedRow][_selectedCol] == num) return;  // no-op guard
+    if (_board[_selectedRow][_selectedCol] == num) return;
     setState(() {
-      _undoStack.add((
-        row: _selectedRow,
-        col: _selectedCol,
-        oldValue: _board[_selectedRow][_selectedCol],
-        newValue: num,
-      ));
-      _board[_selectedRow][_selectedCol] = num;
-      _updateErrors();
-      _candidates = computeCandidates(_board);
-      if (_checkWin()) {
-        _isCompleted = true;
-        _timer?.cancel();
-        _showWinDialog();
-      }
+      _fillCell(_selectedRow, _selectedCol, num);
     });
   }
 
@@ -220,6 +208,44 @@ class _GameScreenState extends State<GameScreen> {
       _updateErrors();
       _candidates = computeCandidates(_board);
     });
+  }
+
+  void _fillCell(int row, int col, int digit) {
+    // Add to undo stack
+    _undoStack.add((
+      row: row,
+      col: col,
+      oldValue: _board[row][col],
+      newValue: digit,
+    ));
+
+    // Fill the cell
+    _board[row][col] = digit;
+    _updateErrors();
+    _candidates = computeCandidates(_board);
+
+    // Track completed digits
+    _updateCompletedDigits(digit);
+
+    // Check win
+    if (_checkWin()) {
+      _isCompleted = true;
+      _timer?.cancel();
+      _showWinDialog();
+    }
+  }
+
+  void _updateCompletedDigits(int digit) {
+    // Count occurrences of this digit on the board
+    int count = 0;
+    for (int r = 0; r < 9; r++) {
+      for (int c = 0; c < 9; c++) {
+        if (_board[r][c] == digit) count++;
+      }
+    }
+    if (count >= 9) {
+      _completedDigits = {..._completedDigits, digit};
+    }
   }
 
   void _undo() {
