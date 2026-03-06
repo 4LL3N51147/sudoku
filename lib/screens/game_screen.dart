@@ -202,13 +202,7 @@ class _GameScreenState extends State<GameScreen> {
     if (_gameBoard.isGivenCell(_selection.row, _selection.col)) return;
     if (_gameBoard.board[_selection.row][_selection.col] == 0) return;  // no-op guard
     setState(() {
-      _gameBoard.undoStack.add((
-        row: _selection.row,
-        col: _selection.col,
-        oldValue: _gameBoard.board[_selection.row][_selection.col],
-        newValue: 0,
-      ));
-      _gameBoard.board[_selection.row][_selection.col] = 0;
+      _gameBoard.eraseCell(_selection.row, _selection.col);
       _updateErrors();
       _candidates = computeCandidates(_gameBoard.board);
       _completedDigits = _calculateCompletedDigits();
@@ -378,22 +372,25 @@ class _GameScreenState extends State<GameScreen> {
             // Naked Quad: these 4 digits are locked in these 4 cells
             _hintMessage = 'Naked Quad: $digits are locked in these 4 cells';
           } else if (result.type == StrategyType.hiddenPair) {
-            // Hidden Pair: only these 2 cells can have these 2 digits
-            _hintMessage = 'Hidden Pair: $digits can ONLY go in these 2 cells';
+            // Hidden Pair: look for 2 digits that appear in exactly 2 cells - don't reveal which cells yet
+            _hintMessage = 'Looking for Hidden Pair: $digits in this $unitLabel';
           } else if (result.type == StrategyType.hiddenTriple) {
-            // Hidden Triple: only these 3 cells can have these 3 digits
-            _hintMessage = 'Hidden Triple: $digits can ONLY go in these 3 cells';
+            // Hidden Triple: look for 3 digits that appear in exactly 3 cells - don't reveal which cells yet
+            _hintMessage = 'Looking for Hidden Triple: $digits in this $unitLabel';
           } else if (result.type == StrategyType.hiddenQuad) {
-            // Hidden Quad: only these 4 cells can have these 4 digits
-            _hintMessage = 'Hidden Quad: $digits can ONLY go in these 4 cells';
+            // Hidden Quad: look for 4 digits that appear in exactly 4 cells - don't reveal which cells yet
+            _hintMessage = 'Looking for Hidden Quad: $digits in this $unitLabel';
           } else {
             _hintMessage = 'Found $digits in this $unitLabel';
           }
-          // Highlight the pattern cells (no elimination strikethrough in this phase)
+          // For hidden strategies, don't highlight specific cells in scan phase - 
+          // user can't know which cells until after elimination
+          // For naked strategies, show the pattern cells
+          final showPatternCells = isNaked;
           _strategyHighlight = StrategyHighlight(
             phase: StrategyPhase.scan,
             unitCells: result.unitCells,
-            patternCells: result.patternCells,
+            patternCells: showPatternCells ? result.patternCells : {},
             patternDigits: result.patternDigits,
             unitType: result.unitType,
           );
@@ -409,7 +406,7 @@ class _GameScreenState extends State<GameScreen> {
           } else {
             _hintMessage = '${result.patternDigits} can only go in ${result.patternCells.length} cell(s)!';
           }
-          // Show elimination
+          // Show elimination with zones
           _strategyHighlight = StrategyHighlight(
             phase: StrategyPhase.elimination,
             unitCells: result.unitCells,
@@ -417,6 +414,9 @@ class _GameScreenState extends State<GameScreen> {
             patternCells: result.patternCells,
             patternDigits: result.patternDigits,
             eliminationCandidates: result.eliminationCandidates,
+            eliminationRows: result.eliminationRows,
+            eliminationCols: result.eliminationCols,
+            eliminationBoxes: result.eliminationBoxes,
             targetCell: result.targetCell,
             unitType: result.unitType,
           );
@@ -476,7 +476,10 @@ class _GameScreenState extends State<GameScreen> {
         setState(() {
           if (shouldAutoFill) {
             // Fill the cell automatically for Hidden Single
-            _fillCell(row, col, result.patternDigits.first);
+            _gameBoard.setCell(row, col, result.patternDigits.first);
+            _updateErrors();
+            // Clear candidates - pencil marks should not be shown after hidden single
+            _candidates = {};
           }
           // Apply elimination candidates to _candidates
           if (result.eliminationCandidates.isNotEmpty) {
@@ -645,14 +648,9 @@ class _GameScreenState extends State<GameScreen> {
         assert(result.targetCell != null, 'Hidden Single result must have a targetCell');
         final (row, col) = result.targetCell!;
         setState(() {
-          final oldValue = _gameBoard.board[row][col];
-          _gameBoard.undoStack.add((
-            row: row,
-            col: col,
-            oldValue: oldValue,
-            newValue: result.patternDigits.first,
-          ));
-          _gameBoard.board[row][col] = result.patternDigits.first;
+          // Use setCell which properly handles the undo stack
+          _gameBoard.setCell(row, col, result.patternDigits.first);
+          // Don't compute candidates - they should only be shown for elimination strategies
           _updateErrors();
           _strategyHighlight = null;
           _hintMessage = null;

@@ -131,5 +131,27 @@ void main() {
         expect(board.undoStack.length, 0);
       }
     });
+
+    test('undo stack getter returns unmodifiable list', () {
+      // Find empty cell and set value
+      int emptyRow = -1, emptyCol = -1;
+      for (var r = 0; r < 9; r++) {
+        for (var c = 0; c < 9; c++) {
+          if (board.getCell(r, c) == 0) {
+            emptyRow = r;
+            emptyCol = c;
+            break;
+          }
+        }
+        if (emptyRow >= 0) break;
+      }
+
+      if (emptyRow >= 0) {
+        board.setCell(emptyRow, emptyCol, 5);
+        // The getter should return an unmodifiable view
+        expect(() => board.undoStack.add((row: 0, col: 0, oldValue: 0, newValue: 1)),
+            throwsA(isA<UnsupportedError>()));
+      }
+    });
   });
 }

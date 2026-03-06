@@ -150,7 +150,12 @@ class SudokuBoard extends StatelessWidget {
         // Check if this is an elimination cell (other cells where candidates get removed)
         final isEliminationCell = sh.eliminatorCells.contains(cell);
 
-        if (isPatternCell) {
+        // For hidden strategies, pattern cells and elimination cells are the same.
+        // Show amber (elimination) rather than purple when a cell is both.
+        if (isEliminationCell && isPatternCell) {
+          // Cells where candidates are being eliminated (also pattern cells for hidden strategies)
+          bgColor = const Color(0xFFFFE0B2); // amber-100
+        } else if (isPatternCell) {
           // The pair/triple/quad cells - highlight in purple for visibility
           bgColor = const Color(0xFFCE93D8); // purple-200
         } else if (isEliminationCell) {

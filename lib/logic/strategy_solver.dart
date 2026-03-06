@@ -493,6 +493,33 @@ class StrategySolver {
             }
 
             if (eliminationCandidates.isNotEmpty) {
+              // Compute elimination zones for the pattern digits
+              final elimRows = <int>{};
+              final elimCols = <int>{};
+              final elimBoxes = <int>{};
+              for (final cell in pairCells) {
+                final (r, c) = cell;
+                for (final d in {d1, d2}) {
+                  // Check row
+                  for (int cc = 0; cc < 9; cc++) {
+                    if (board[r][cc] == d) elimRows.add(r);
+                  }
+                  // Check column
+                  for (int rr = 0; rr < 9; rr++) {
+                    if (board[rr][c] == d) elimCols.add(c);
+                  }
+                  // Check box
+                  final br = (r ~/ 3) * 3;
+                  final bc = (c ~/ 3) * 3;
+                  for (int rr = br; rr < br + 3; rr++) {
+                    for (int cc = bc; cc < bc + 3; cc++) {
+                      if (board[rr][cc] == d) {
+                        elimBoxes.add((r ~/ 3) * 3 + (c ~/ 3));
+                      }
+                    }
+                  }
+                }
+              }
               return StrategyResult(
                 type: StrategyType.hiddenPair,
                 phase: StrategyPhase.elimination,
@@ -502,6 +529,9 @@ class StrategySolver {
                 patternDigits: {d1, d2},
                 eliminationCells: eliminationCells,
                 eliminationCandidates: eliminationCandidates,
+                eliminationRows: elimRows,
+                eliminationCols: elimCols,
+                eliminationBoxes: elimBoxes,
               );
             }
           }
@@ -688,6 +718,31 @@ class StrategySolver {
             }
 
             if (eliminationCandidates.isNotEmpty) {
+              // Compute elimination zones for the pattern digits
+              final elimRows = <int>{};
+              final elimCols = <int>{};
+              final elimBoxes = <int>{};
+              for (final cell in tripleCells) {
+                final (r, c) = cell;
+                for (final d in {d1, d2, d3}) {
+                  // Check row
+                  for (int cc = 0; cc < 9; cc++) {
+                    if (board[r][cc] == d) elimRows.add(r);
+                  }
+                  // Check column
+                  for (int rr = 0; rr < 9; rr++) {
+                    if (board[rr][c] == d) elimCols.add(c);
+                  }
+                  // Check box
+                  for (int rr = (r ~/ 3) * 3; rr < (r ~/ 3) * 3 + 3; rr++) {
+                    for (int cc = (c ~/ 3) * 3; cc < (c ~/ 3) * 3 + 3; cc++) {
+                      if (board[rr][cc] == d) {
+                        elimBoxes.add((r ~/ 3) * 3 + (c ~/ 3));
+                      }
+                    }
+                  }
+                }
+              }
               return StrategyResult(
                 type: StrategyType.hiddenTriple,
                 phase: StrategyPhase.elimination,
@@ -697,6 +752,9 @@ class StrategySolver {
                 patternDigits: {d1, d2, d3},
                 eliminationCells: eliminationCells,
                 eliminationCandidates: eliminationCandidates,
+                eliminationRows: elimRows,
+                eliminationCols: elimCols,
+                eliminationBoxes: elimBoxes,
               );
             }
           }
@@ -895,6 +953,31 @@ class StrategySolver {
               }
 
               if (eliminationCandidates.isNotEmpty) {
+                // Compute elimination zones for the pattern digits
+                final elimRows = <int>{};
+                final elimCols = <int>{};
+                final elimBoxes = <int>{};
+                for (final cell in quadCells) {
+                  final (r, c) = cell;
+                  for (final d in {d1, d2, d3, d4}) {
+                    // Check row
+                    for (int cc = 0; cc < 9; cc++) {
+                      if (board[r][cc] == d) elimRows.add(r);
+                    }
+                    // Check column
+                    for (int rr = 0; rr < 9; rr++) {
+                      if (board[rr][c] == d) elimCols.add(c);
+                    }
+                    // Check box
+                    for (int rr = (r ~/ 3) * 3; rr < (r ~/ 3) * 3 + 3; rr++) {
+                      for (int cc = (c ~/ 3) * 3; cc < (c ~/ 3) * 3 + 3; cc++) {
+                        if (board[rr][cc] == d) {
+                          elimBoxes.add((r ~/ 3) * 3 + (c ~/ 3));
+                        }
+                      }
+                    }
+                  }
+                }
                 return StrategyResult(
                   type: StrategyType.hiddenQuad,
                   phase: StrategyPhase.elimination,
@@ -904,6 +987,9 @@ class StrategySolver {
                   patternDigits: {d1, d2, d3, d4},
                   eliminationCells: eliminationCells,
                   eliminationCandidates: eliminationCandidates,
+                  eliminationRows: elimRows,
+                  eliminationCols: elimCols,
+                  eliminationBoxes: elimBoxes,
                 );
               }
             }
