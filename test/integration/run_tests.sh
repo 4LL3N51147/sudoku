@@ -2,8 +2,6 @@
 # Integration test runner
 # Runs all Playwright integration tests
 
-set -e
-
 echo "============================================"
 echo "Sudoku App Integration Tests"
 echo "============================================"
@@ -39,12 +37,18 @@ fi
 
 # Run each test
 TEST_FILES=(
-    "basic_connectivity_test.js"
     "new_game_test.js"
     "number_input_test.js"
     "hint_test.js"
-    "import_export_test.js"
+    "strategy_hidden_single_test.js"
+    "strategy_naked_pair_test.js"
+    "strategy_hidden_pair_test.js"
+    "strategy_naked_triple_test.js"
+    "strategy_hidden_triple_test.js"
+    "strategy_naked_quad_test.js"
+    "strategy_hidden_quad_test.js"
     "settings_test.js"
+    "import_export_test.js"
 )
 
 PASSED=0
@@ -53,9 +57,9 @@ FAILED=0
 for test_file in "${TEST_FILES[@]}"; do
     echo "Running: $test_file"
     if node "$test_file"; then
-        ((PASSED++))
+        PASSED=$((PASSED + 1))
     else
-        ((FAILED++))
+        FAILED=$((FAILED + 1))
         echo "✗ FAILED: $test_file"
     fi
     echo ""

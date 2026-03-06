@@ -216,24 +216,15 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _fillCell(int row, int col, int digit) {
-    // Add to undo stack
-    _gameBoard.undoStack.add((
-      row: row,
-      col: col,
-      oldValue: _gameBoard.board[row][col],
-      newValue: digit,
-    ));
-
-    // Fill the cell
-    _gameBoard.board[row][col] = digit;
-    _updateErrors();
+    // Use GameBoard to set cell (includes undo stack and error update)
+    _gameBoard.setCell(row, col, digit);
     _candidates = computeCandidates(_gameBoard.board);
 
     // Track completed digits
     _updateCompletedDigits(digit);
 
     // Check win
-    if (_checkWin()) {
+    if (_gameBoard.checkWin()) {
       _isCompleted = true;
       _timer?.cancel();
       _showWinDialog();
@@ -353,7 +344,7 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _advanceHintPhaseStrategy(StrategyResult result) {
-    if (_hintPhase! < 2) {
+    if (_hintPhase! < 3) {
       // Advance to next phase
       setState(() {
         _hintPhase = _hintPhase! + 1;
@@ -429,6 +420,50 @@ class _GameScreenState extends State<GameScreen> {
             targetCell: result.targetCell,
             unitType: result.unitType,
           );
+        } else if (_hintPhase == 3) {
+          // Phase 3: Show target/result - cells that can now be filled
+          if (isNaked && result.resultCells.isNotEmpty) {
+            // Naked strategies: show cells that now have single candidates
+            final resultCount = result.resultCells.length;
+            _hintMessage = 'Now you can fill $resultCount cell${resultCount > 1 ? 's' : ''} with single candidates!';
+            // Highlight result cells in green
+            _strategyHighlight = StrategyHighlight(
+              phase: StrategyPhase.target,
+              unitCells: result.unitCells,
+              patternCells: result.patternCells,
+              resultCells: result.resultCells,
+              patternDigits: result.patternDigits,
+              targetCell: result.targetCell,
+              unitType: result.unitType,
+            );
+          } else if (isHidden) {
+            // Hidden strategies: highlight pattern cells as the result (digits are locked)
+            _hintMessage = 'These cells are now locked to $digits!';
+            // Highlight pattern cells in green as the result
+            _strategyHighlight = StrategyHighlight(
+              phase: StrategyPhase.target,
+              unitCells: result.unitCells,
+              patternCells: result.patternCells,
+              patternDigits: result.patternDigits,
+              targetCell: result.targetCell,
+              unitType: result.unitType,
+            );
+          } else if (result.targetCell != null) {
+            // Hidden Single: show the target cell
+            final digit = result.patternDigits.first;
+            _hintMessage = 'Now you can place $digit in this cell!';
+            _strategyHighlight = StrategyHighlight(
+              phase: StrategyPhase.target,
+              unitCells: result.unitCells,
+              patternCells: result.patternCells,
+              patternDigits: result.patternDigits,
+              targetCell: result.targetCell,
+              unitType: result.unitType,
+            );
+          } else {
+            // Fallback - skip to completion
+            _hintPhase = 4; // Will trigger completion in next check
+          }
         }
       });
     } else {
@@ -804,7 +839,7 @@ class _GameScreenState extends State<GameScreen> {
           child: _hintMessage != null
           ? HintBanner(
               message: _hintMessage!,
-              hasNextButton: _hintPhase != null && _hintPhase! <= 2,
+              hasNextButton: _hintPhase != null && _hintPhase! <= 3,
               onNextPressed: (_isPaused || _isCompleted) ? null : _advanceHintPhase,
             )
           : const SizedBox(),
@@ -855,7 +890,7 @@ class _GameScreenState extends State<GameScreen> {
           child: _hintMessage != null
           ? HintBanner(
               message: _hintMessage!,
-              hasNextButton: _hintPhase != null && _hintPhase! <= 2,
+              hasNextButton: _hintPhase != null && _hintPhase! <= 3,
               onNextPressed: (_isPaused || _isCompleted) ? null : _advanceHintPhase,
             )
           : const SizedBox(),

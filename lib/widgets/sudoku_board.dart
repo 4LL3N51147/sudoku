@@ -128,8 +128,15 @@ class SudokuBoard extends StatelessWidget {
       // Compute box index (0-8) for this cell
       final boxIndex = (row ~/ 3) * 3 + (col ~/ 3);
 
-      if (sh.phase == StrategyPhase.target && sh.targetCell == cell) {
-        bgColor = const Color(0xFFC8E6C9); // green-100 — place digit here
+      if (sh.phase == StrategyPhase.target) {
+        // Check for targetCell (Hidden Single) or resultCells (Naked strategies)
+        final isTarget = sh.targetCell == cell;
+        final isResultCell = sh.resultCells.contains(cell);
+        if (isTarget || isResultCell) {
+          bgColor = const Color(0xFFC8E6C9); // green-100 — place digit here
+        } else {
+          bgColor = Colors.white;
+        }
       } else if (sh.phase == StrategyPhase.elimination) {
         // Check for red elimination zones (rows, cols, boxes containing the digit)
         final isInEliminationRow = sh.eliminationRows.contains(row);

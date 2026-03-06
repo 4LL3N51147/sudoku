@@ -29,6 +29,8 @@ class StrategyResult {
   final Set<int> eliminationCols;
   /// Boxes (0-8) that contain the digit being eliminated (for red elimination zones)
   final Set<int> eliminationBoxes;
+  /// Cells that now have only 1 candidate after elimination (for Naked strategies)
+  final Set<(int, int)> resultCells;
 
   const StrategyResult({
     required this.type,
@@ -43,6 +45,7 @@ class StrategyResult {
     this.eliminationRows = const {},
     this.eliminationCols = const {},
     this.eliminationBoxes = const {},
+    this.resultCells = const {},
   });
 }
 
@@ -90,6 +93,8 @@ class StrategyHighlight {
   final Set<int> eliminationCols;
   /// Boxes (0-8) that contain the digit being eliminated (for red elimination zones)
   final Set<int> eliminationBoxes;
+  /// Cells that now have only 1 candidate after elimination (for Naked strategies)
+  final Set<(int, int)> resultCells;
 
   const StrategyHighlight({
     required this.phase,
@@ -103,6 +108,7 @@ class StrategyHighlight {
     this.eliminationRows = const {},
     this.eliminationCols = const {},
     this.eliminationBoxes = const {},
+    this.resultCells = const {},
   });
 }
 
@@ -388,6 +394,18 @@ class StrategySolver {
         }
 
         if (eliminationCells.isNotEmpty) {
+          // Compute result cells: cells that now have only 1 candidate after elimination
+          final resultCells = <(int, int)>{};
+          for (final cell in emptyCells) {
+            if (!pairCells.contains(cell)) {
+              final cellCand = candidates[cell]!;
+              final remainingAfterElimination = cellCand.difference(pairDigits);
+              if (remainingAfterElimination.length == 1) {
+                resultCells.add(cell);
+              }
+            }
+          }
+
           return StrategyResult(
             type: StrategyType.nakedPair,
             phase: StrategyPhase.elimination,
@@ -397,6 +415,7 @@ class StrategySolver {
             patternDigits: pairDigits,
             eliminationCells: eliminationCells,
             eliminationCandidates: eliminationCandidates,
+            resultCells: resultCells,
           );
         }
       }
@@ -562,6 +581,19 @@ class StrategySolver {
                   eliminationCandidates[cell] = digitsToRemove;
                 }
               }
+
+              // Compute result cells: cells that now have only 1 candidate after elimination
+              final resultCells = <(int, int)>{};
+              for (final cell in emptyCells) {
+                if (!triple.contains(cell)) {
+                  final cellCand = candidates[cell]!;
+                  final remainingAfterElimination = cellCand.difference(combinedCandidates);
+                  if (remainingAfterElimination.length == 1) {
+                    resultCells.add(cell);
+                  }
+                }
+              }
+
               return StrategyResult(
                 type: StrategyType.nakedTriple,
                 phase: StrategyPhase.elimination,
@@ -571,6 +603,7 @@ class StrategySolver {
                 patternDigits: combinedCandidates,
                 eliminationCells: eliminationCells,
                 eliminationCandidates: eliminationCandidates,
+                resultCells: resultCells,
               );
             }
           }
@@ -749,6 +782,19 @@ class StrategySolver {
                     eliminationCandidates[cell] = digitsToRemove;
                   }
                 }
+
+                // Compute result cells: cells that now have only 1 candidate after elimination
+                final resultCells = <(int, int)>{};
+                for (final cell in emptyCells) {
+                  if (!quad.contains(cell)) {
+                    final cellCand = candidates[cell]!;
+                    final remainingAfterElimination = cellCand.difference(combinedCandidates);
+                    if (remainingAfterElimination.length == 1) {
+                      resultCells.add(cell);
+                    }
+                  }
+                }
+
                 return StrategyResult(
                   type: StrategyType.nakedQuad,
                   phase: StrategyPhase.elimination,
@@ -758,6 +804,7 @@ class StrategySolver {
                   patternDigits: combinedCandidates,
                   eliminationCells: eliminationCells,
                   eliminationCandidates: eliminationCandidates,
+                  resultCells: resultCells,
                 );
               }
             }
