@@ -11,6 +11,8 @@ import '../widgets/sudoku_board.dart';
 import '../widgets/number_pad.dart';
 import '../app_settings.dart';
 import '../widgets/settings_sheet.dart';
+import '../widgets/hint_banner.dart';
+import '../widgets/pause_overlay.dart';
 
 
 class GameScreen extends StatefulWidget {
@@ -758,7 +760,13 @@ class _GameScreenState extends State<GameScreen> {
             return Stack(
               children: [
                 isWide ? _buildWideLayout() : _buildNarrowLayout(),
-                if (_isPaused) _buildPauseOverlay(),
+                if (_isPaused) PauseOverlay(
+        onResume: _togglePause,
+        onQuit: () {
+          _timer?.cancel();
+          Navigator.pop(context);
+        },
+      ),
               ],
             );
           },
@@ -793,7 +801,13 @@ class _GameScreenState extends State<GameScreen> {
         // Reserve space for hint banner to prevent layout shift
         SizedBox(
           height: _hintMessage != null ? 52 : 0,
-          child: _hintMessage != null ? _buildHintBanner(_hintMessage!) : const SizedBox(),
+          child: _hintMessage != null
+          ? HintBanner(
+              message: _hintMessage!,
+              hasNextButton: _hintPhase != null && _hintPhase! <= 2,
+              onNextPressed: (_isPaused || _isCompleted) ? null : _advanceHintPhase,
+            )
+          : const SizedBox(),
         ),
         const SizedBox(height: 8),
         Padding(
@@ -838,7 +852,13 @@ class _GameScreenState extends State<GameScreen> {
         // Reserve space for hint banner to prevent layout shift
         SizedBox(
           height: _hintMessage != null ? 52 : 0,
-          child: _hintMessage != null ? _buildHintBanner(_hintMessage!) : const SizedBox(),
+          child: _hintMessage != null
+          ? HintBanner(
+              message: _hintMessage!,
+              hasNextButton: _hintPhase != null && _hintPhase! <= 2,
+              onNextPressed: (_isPaused || _isCompleted) ? null : _advanceHintPhase,
+            )
+          : const SizedBox(),
         ),
         const SizedBox(height: 8),
         Padding(
@@ -1040,106 +1060,4 @@ class _GameScreenState extends State<GameScreen> {
     }
   }
 
-  Widget _buildHintBanner(String message) {
-    final bool hasNextButton = _hintPhase != null && _hintPhase! <= 2;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          color: const Color(0xFFE8EAF6),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: const Color(0xFF1A237E), width: 0.5),
-        ),
-        child: Row(
-          children: [
-            const Icon(Icons.info_outline,
-                color: Color(0xFF1A237E), size: 16),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                message,
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: Color(0xFF1A237E),
-                ),
-              ),
-            ),
-            if (hasNextButton) ...[
-              const SizedBox(width: 8),
-              TextButton(
-                onPressed: (_isPaused || _isCompleted)
-                    ? null
-                    : _advanceHintPhase,
-                child: const Text(
-                  'Next \u2192',
-                  style: TextStyle(
-                    color: Color(0xFF1A237E),
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPauseOverlay() {
-    return Positioned.fill(
-      child: Container(
-        color: Colors.black54,
-        child: Center(
-          child: Card(
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(24)),
-            elevation: 12,
-            child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 48, vertical: 40),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.pause_circle_filled_rounded,
-                      size: 64, color: Color(0xFF1A237E)),
-                  const SizedBox(height: 12),
-                  const Text(
-                    'Game Paused',
-                    style: TextStyle(
-                        fontSize: 24, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 28),
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1A237E),
-                      foregroundColor: Colors.white,
-                      minimumSize: const Size(200, 52),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14)),
-                    ),
-                    icon: const Icon(Icons.play_arrow_rounded),
-                    label: const Text('Resume',
-                        style: TextStyle(fontSize: 17)),
-                    onPressed: _togglePause,
-                  ),
-                  const SizedBox(height: 12),
-                  TextButton(
-                    onPressed: () {
-                      _timer?.cancel();
-                      Navigator.pop(context);
-                    },
-                    child: const Text(
-                      'Quit to Menu',
-                      style: TextStyle(color: Colors.redAccent, fontSize: 15),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 }
