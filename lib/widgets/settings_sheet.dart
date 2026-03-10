@@ -96,96 +96,98 @@ class _SettingsSheetState extends State<SettingsSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Settings',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'HINT ANIMATION',
-            style: TextStyle(
-              fontSize: 11,
-              color: Colors.grey,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 1.2,
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Settings',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-          ),
-          const SizedBox(height: 8),
-          _slider(
-            title: 'Scan',
-            value: _scanMs,
-            onChanged: (v) => _update(scan: v),
-          ),
-          _slider(
-            title: 'Elimination',
-            value: _eliminationMs,
-            onChanged: (v) => _update(elimination: v),
-          ),
-          _slider(
-            title: 'Target',
-            value: _targetMs,
-            onChanged: (v) => _update(target: v),
-          ),
-          Row(
-            children: [
-              const Expanded(
-                child: Text('Skip Animation', style: TextStyle(fontSize: 14)),
+            const SizedBox(height: 16),
+            const Text(
+              'HINT ANIMATION',
+              style: TextStyle(
+                fontSize: 11,
+                color: Colors.grey,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 1.2,
               ),
-              Switch(
-                value: _skipAnimation,
-                onChanged: (v) => _update(skipAnimation: v),
-                activeTrackColor: const Color(0xFF1A237E).withValues(alpha: 0.5),
-                thumbColor: WidgetStateProperty.resolveWith((states) {
-                  if (states.contains(WidgetState.selected)) {
-                    return const Color(0xFF1A237E);
-                  }
-                  return null;
-                }),
+            ),
+            const SizedBox(height: 8),
+            _slider(
+              title: 'Scan',
+              value: _scanMs,
+              onChanged: (v) => _update(scan: v),
+            ),
+            _slider(
+              title: 'Elimination',
+              value: _eliminationMs,
+              onChanged: (v) => _update(elimination: v),
+            ),
+            _slider(
+              title: 'Target',
+              value: _targetMs,
+              onChanged: (v) => _update(target: v),
+            ),
+            Row(
+              children: [
+                const Expanded(
+                  child: Text('Skip Animation', style: TextStyle(fontSize: 14)),
+                ),
+                Switch(
+                  value: _skipAnimation,
+                  onChanged: (v) => _update(skipAnimation: v),
+                  activeTrackColor: const Color(0xFF1A237E).withValues(alpha: 0.5),
+                  thumbColor: WidgetStateProperty.resolveWith((states) {
+                    if (states.contains(WidgetState.selected)) {
+                      return const Color(0xFF1A237E);
+                    }
+                    return null;
+                  }),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'ABOUT',
+              style: TextStyle(
+                fontSize: 11,
+                color: Colors.grey,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 1.2,
               ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          const Text(
-            'ABOUT',
-            style: TextStyle(
-              fontSize: 11,
-              color: Colors.grey,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 1.2,
             ),
-          ),
-          const SizedBox(height: 8),
-          const ListTile(
-            contentPadding: EdgeInsets.zero,
-            title: Text('Version'),
-            trailing: Text(
-              BuildInfo.version,
-              style: TextStyle(color: Colors.grey),
+            const SizedBox(height: 8),
+            const ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text('Version'),
+              trailing: Text(
+                BuildInfo.version,
+                style: TextStyle(color: Colors.grey),
+              ),
             ),
-          ),
-          const ListTile(
-            contentPadding: EdgeInsets.zero,
-            title: Text('Build'),
-            trailing: Text(
-              BuildInfo.buildTime,
-              style: TextStyle(color: Colors.grey),
+            const ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text('Build'),
+              trailing: Text(
+                BuildInfo.buildTime,
+                style: TextStyle(color: Colors.grey),
+              ),
             ),
-          ),
-          const ListTile(
-            contentPadding: EdgeInsets.zero,
-            title: Text('Commit'),
-            trailing: Text(
-              BuildInfo.commit,
-              style: TextStyle(color: Colors.grey),
+            const ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text('Commit'),
+              trailing: Text(
+                BuildInfo.commit,
+                style: TextStyle(color: Colors.grey),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

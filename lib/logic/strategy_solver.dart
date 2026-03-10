@@ -2,6 +2,39 @@ enum StrategyPhase { scan, elimination, target }
 
 enum UnitType { row, column, box }
 
+/// Represents a single step in the hint animation sequence
+class HintStep {
+  final StrategyPhase phase;
+  final String? message;
+  final Set<(int, int)> unitCells;
+  final Set<(int, int)> patternCells;
+  final Set<(int, int)> eliminatorCells;
+  final (int, int)? targetCell;
+  final UnitType? unitType;
+  final Set<int> patternDigits;
+  final Map<(int, int), Set<int>> eliminationCandidates;
+  final Set<int> eliminationRows;
+  final Set<int> eliminationCols;
+  final Set<int> eliminationBoxes;
+  final Set<(int, int)> resultCells;
+
+  const HintStep({
+    required this.phase,
+    this.message,
+    this.unitCells = const {},
+    this.patternCells = const {},
+    this.eliminatorCells = const {},
+    this.targetCell,
+    this.unitType,
+    this.patternDigits = const {},
+    this.eliminationCandidates = const {},
+    this.eliminationRows = const {},
+    this.eliminationCols = const {},
+    this.eliminationBoxes = const {},
+    this.resultCells = const {},
+  });
+}
+
 enum StrategyType {
   hiddenSingle,
   nakedPair,
@@ -16,6 +49,8 @@ class StrategyResult {
   final StrategyType type;
   final StrategyPhase phase;
   final UnitType? unitType;
+  /// List of hint steps for animation - each step is a state change in the strategy
+  final List<HintStep> hintSteps;
   final Set<(int, int)> unitCells;
   final Set<(int, int)> patternCells;
   final Set<int> patternDigits;
@@ -29,6 +64,8 @@ class StrategyResult {
   final Set<int> eliminationCols;
   /// Boxes (0-8) that contain the digit being eliminated (for red elimination zones)
   final Set<int> eliminationBoxes;
+  /// Cells that now have only 1 candidate after elimination (for Naked strategies)
+  final Set<(int, int)> resultCells;
 
   const StrategyResult({
     required this.type,
@@ -43,33 +80,8 @@ class StrategyResult {
     this.eliminationRows = const {},
     this.eliminationCols = const {},
     this.eliminationBoxes = const {},
-  });
-}
-
-class HiddenSingleResult {
-  final int row;
-  final int col;
-  final int digit;
-  final Set<(int, int)> unitCells;
-  final Set<(int, int)> eliminatorCells;
-  final UnitType unitType;
-  /// Rows that contain the digit being eliminated (for red elimination zones)
-  final Set<int> eliminationRows;
-  /// Columns that contain the digit being eliminated (for red elimination zones)
-  final Set<int> eliminationCols;
-  /// Boxes (0-8) that contain the digit being eliminated (for red elimination zones)
-  final Set<int> eliminationBoxes;
-
-  const HiddenSingleResult({
-    required this.row,
-    required this.col,
-    required this.digit,
-    required this.unitCells,
-    required this.eliminatorCells,
-    required this.unitType,
-    this.eliminationRows = const {},
-    this.eliminationCols = const {},
-    this.eliminationBoxes = const {},
+    this.resultCells = const {},
+    this.hintSteps = const [],
   });
 }
 
@@ -90,6 +102,8 @@ class StrategyHighlight {
   final Set<int> eliminationCols;
   /// Boxes (0-8) that contain the digit being eliminated (for red elimination zones)
   final Set<int> eliminationBoxes;
+  /// Cells that now have only 1 candidate after elimination (for Naked strategies)
+  final Set<(int, int)> resultCells;
 
   const StrategyHighlight({
     required this.phase,
@@ -103,6 +117,7 @@ class StrategyHighlight {
     this.eliminationRows = const {},
     this.eliminationCols = const {},
     this.eliminationBoxes = const {},
+    this.resultCells = const {},
   });
 }
 
@@ -222,64 +237,134 @@ class StrategySolver {
           // Add blockers (cells with the digit that block this cell)
           eliminators.addAll(_findBlockers(r, c, digit));
 
-          // Compute elimination zones based on constraints affecting THIS cell
-          // For row: mark cols and boxes that have the digit
-          // For column: mark rows and boxes that have the digit
-          // For box: mark rows and cols that have the digit
+          // Compute elimination zones - show where the digit exists in relevant constraints
+          // For row hidden single: show columns in THIS ROW and boxes containing the digit
+          // For column hidden single: show boxes containing the digit (not rows - that's wrong approach)
+          // For box hidden single: show rows and cols in THIS BOX
+          
           if (unitType == UnitType.row) {
-            // Check column - does digit exist in this column?
-            for (int rr = 0; rr < 9; rr++) {
-              if (board[rr][c] == digit) eliminationCols.add(c);
+            // Check columns in THIS ROW that have the digit
+            for (int cc = 0; cc < 9; cc++) {
+              if (cc != tc && board[tr][cc] == digit) {
+                eliminationCols.add(cc);
+              }
             }
-            // Check box - does digit exist in this box?
-            final cellBox = (r ~/ 3) * 3 + (c ~/ 3);
-            for (int br = 0; br < 3; br++) {
-              for (int bc = 0; bc < 3; bc++) {
-                final boxIdx = br * 3 + bc;
-                if (boxIdx == cellBox) {
-                  for (int rr = br * 3; rr < br * 3 + 3; rr++) {
-                    for (int cc = bc * 3; cc < bc * 3 + 3; cc++) {
-                      if (board[rr][cc] == digit) {
-                        eliminationBoxes.add(boxIdx);
-                      }
-                    }
-                  }
+            // Check ALL boxes that contain the digit
+            for (int r = 0; r < 9; r++) {
+              for (int c = 0; c < 9; c++) {
+                if (board[r][c] == digit) {
+                  final b = (r ~/ 3) * 3 + (c ~/ 3);
+                  eliminationBoxes.add(b);
                 }
               }
             }
           } else if (unitType == UnitType.column) {
-            // Check row - does digit exist in this row?
-            for (int cc = 0; cc < 9; cc++) {
-              if (board[r][cc] == digit) eliminationRows.add(r);
-            }
-            // Check box - does digit exist in this box?
-            final cellBox = (r ~/ 3) * 3 + (c ~/ 3);
+            // For column hidden single: show boxes in THIS COLUMN that contain the digit
+            // Column 6 intersects boxes at box-col index 2 (boxes 2, 5, 8)
+            final targetBoxCol = tc ~/ 3;
             for (int br = 0; br < 3; br++) {
-              for (int bc = 0; bc < 3; bc++) {
-                final boxIdx = br * 3 + bc;
-                if (boxIdx == cellBox) {
-                  for (int rr = br * 3; rr < br * 3 + 3; rr++) {
-                    for (int cc = bc * 3; cc < bc * 3 + 3; cc++) {
-                      if (board[rr][cc] == digit) {
-                        eliminationBoxes.add(boxIdx);
-                      }
-                    }
+              final boxIndex = br * 3 + targetBoxCol;
+              // Check if this box contains the digit
+              for (int rr = br * 3; rr < br * 3 + 3; rr++) {
+                for (int cc = targetBoxCol * 3; cc < targetBoxCol * 3 + 3; cc++) {
+                  if (board[rr][cc] == digit) {
+                    eliminationBoxes.add(boxIndex);
+                    break;
                   }
                 }
+                if (eliminationBoxes.contains(boxIndex)) break;
+              }
+            }
+            // Also show rows in this column that have the digit
+            for (int rr = 0; rr < 9; rr++) {
+              if (board[rr][tc] == digit) {
+                eliminationRows.add(rr);
               }
             }
           } else if (unitType == UnitType.box) {
-            // Check row - does digit exist in this row?
-            for (int cc = 0; cc < 9; cc++) {
-              if (board[r][cc] == digit) eliminationRows.add(r);
-            }
-            // Check column - does digit exist in this column?
-            for (int rr = 0; rr < 9; rr++) {
-              if (board[rr][c] == digit) eliminationCols.add(c);
+            // For box hidden single: show rows and cols in THIS BOX that have the digit
+            final targetBox = (tr ~/ 3) * 3 + (tc ~/ 3);
+            for (int rr = (targetBox ~/ 3) * 3; rr < (targetBox ~/ 3) * 3 + 3; rr++) {
+              for (int cc = (targetBox % 3) * 3; cc < (targetBox % 3) * 3 + 3; cc++) {
+                if (rr != tr && board[rr][cc] == digit) {
+                  eliminationRows.add(rr);
+                }
+                if (cc != tc && board[rr][cc] == digit) {
+                  eliminationCols.add(cc);
+                }
+              }
             }
           }
         }
 
+        final unitLabel = switch (unitType) {
+          UnitType.row => 'row',
+          UnitType.column => 'column',
+          UnitType.box => 'box',
+        };
+        
+        // Compute eliminator cells - cells that contain the digit and block positions
+        // For row hidden single: cells in THIS ROW with the digit
+        // For column hidden single: cells in THIS COLUMN with the digit  
+        // For box hidden single: cells in THIS BOX with the digit
+        final eliminatorCells = <(int, int)>{};
+        
+        if (unitType == UnitType.row) {
+          for (int cc = 0; cc < 9; cc++) {
+            if (cc != tc && board[tr][cc] == digit) {
+              eliminatorCells.add((tr, cc));
+            }
+          }
+        } else if (unitType == UnitType.column) {
+          for (int rr = 0; rr < 9; rr++) {
+            if (rr != tr && board[rr][tc] == digit) {
+              eliminatorCells.add((rr, tc));
+            }
+          }
+        } else if (unitType == UnitType.box) {
+          final targetBox = (tr ~/ 3) * 3 + (tc ~/ 3);
+          for (int rr = (targetBox ~/ 3) * 3; rr < (targetBox ~/ 3) * 3 + 3; rr++) {
+            for (int cc = (targetBox % 3) * 3; cc < (targetBox % 3) * 3 + 3; cc++) {
+              if ((rr, cc) != (tr, tc) && board[rr][cc] == digit) {
+                eliminatorCells.add((rr, cc));
+              }
+            }
+          }
+        }
+        
+        // Hidden single: Scan -> Elimination -> Target
+        final steps = [
+          HintStep(
+            phase: StrategyPhase.scan,
+            message: 'Scanning this $unitLabel — looking for $digit',
+            unitCells: unitCells,
+            patternDigits: {digit},
+            unitType: unitType,
+          ),
+          HintStep(
+            phase: StrategyPhase.elimination,
+            message: '$digit can only go in 1 cell in this $unitLabel!',
+            unitCells: unitCells,
+            patternCells: {(tr, tc)},
+            patternDigits: {digit},
+            targetCell: (tr, tc),
+            unitType: unitType,
+            eliminatorCells: eliminatorCells,
+            eliminationRows: eliminationRows,
+            eliminationCols: eliminationCols,
+            eliminationBoxes: eliminationBoxes,
+          ),
+          HintStep(
+            phase: StrategyPhase.target,
+            message: 'Now you can place $digit in this cell!',
+            unitCells: unitCells,
+            patternCells: {(tr, tc)},
+            patternDigits: {digit},
+            targetCell: (tr, tc),
+            unitType: unitType,
+          ),
+        ];
+        
         return StrategyResult(
           type: StrategyType.hiddenSingle,
           phase: StrategyPhase.target,
@@ -292,6 +377,7 @@ class StrategySolver {
           eliminationRows: eliminationRows,
           eliminationCols: eliminationCols,
           eliminationBoxes: eliminationBoxes,
+          hintSteps: steps,
         );
       }
     }
@@ -388,6 +474,62 @@ class StrategySolver {
         }
 
         if (eliminationCells.isNotEmpty) {
+          // Compute result cells: cells that now have only 1 candidate after elimination
+          final resultCells = <(int, int)>{};
+          for (final cell in emptyCells) {
+            if (!pairCells.contains(cell)) {
+              final cellCand = candidates[cell]!;
+              final remainingAfterElimination = cellCand.difference(pairDigits);
+              if (remainingAfterElimination.length == 1) {
+                resultCells.add(cell);
+              }
+            }
+          }
+
+          // Naked pair: Scan -> Pattern -> Elimination -> Target
+          final unitLabel = switch (unitType) {
+            UnitType.row => 'row',
+            UnitType.column => 'column',
+            UnitType.box => 'box',
+          };
+          final pairSteps = [
+            HintStep(
+              phase: StrategyPhase.scan,
+              message: 'Scanning this $unitLabel — looking for $pairDigits',
+              unitCells: unitCells,
+              patternDigits: pairDigits,
+              unitType: unitType,
+            ),
+            HintStep(
+              phase: StrategyPhase.elimination,
+              message: 'Naked Pair: $pairDigits are locked in these 2 cells',
+              unitCells: unitCells,
+              patternCells: pairCells,
+              patternDigits: pairDigits,
+              unitType: unitType,
+            ),
+            HintStep(
+              phase: StrategyPhase.elimination,
+              message: 'Remove $pairDigits from ${eliminationCells.length} other cell${eliminationCells.length > 1 ? 's' : ''} in this $unitLabel',
+              unitCells: unitCells,
+              patternCells: pairCells,
+              eliminatorCells: eliminationCells,
+              patternDigits: pairDigits,
+              eliminationCandidates: eliminationCandidates,
+              unitType: unitType,
+            ),
+            if (resultCells.isNotEmpty)
+              HintStep(
+                phase: StrategyPhase.target,
+                message: 'Now you can fill ${resultCells.length} cell${resultCells.length > 1 ? 's' : ''} with single candidates!',
+                unitCells: unitCells,
+                patternCells: pairCells,
+                resultCells: resultCells,
+                patternDigits: pairDigits,
+                unitType: unitType,
+              ),
+          ];
+
           return StrategyResult(
             type: StrategyType.nakedPair,
             phase: StrategyPhase.elimination,
@@ -397,6 +539,8 @@ class StrategySolver {
             patternDigits: pairDigits,
             eliminationCells: eliminationCells,
             eliminationCandidates: eliminationCandidates,
+            resultCells: resultCells,
+            hintSteps: pairSteps,
           );
         }
       }
@@ -474,6 +618,33 @@ class StrategySolver {
             }
 
             if (eliminationCandidates.isNotEmpty) {
+              // Compute elimination zones for the pattern digits
+              final elimRows = <int>{};
+              final elimCols = <int>{};
+              final elimBoxes = <int>{};
+              for (final cell in pairCells) {
+                final (r, c) = cell;
+                for (final d in {d1, d2}) {
+                  // Check row
+                  for (int cc = 0; cc < 9; cc++) {
+                    if (board[r][cc] == d) elimRows.add(r);
+                  }
+                  // Check column
+                  for (int rr = 0; rr < 9; rr++) {
+                    if (board[rr][c] == d) elimCols.add(c);
+                  }
+                  // Check box
+                  final br = (r ~/ 3) * 3;
+                  final bc = (c ~/ 3) * 3;
+                  for (int rr = br; rr < br + 3; rr++) {
+                    for (int cc = bc; cc < bc + 3; cc++) {
+                      if (board[rr][cc] == d) {
+                        elimBoxes.add((r ~/ 3) * 3 + (c ~/ 3));
+                      }
+                    }
+                  }
+                }
+              }
               return StrategyResult(
                 type: StrategyType.hiddenPair,
                 phase: StrategyPhase.elimination,
@@ -483,6 +654,9 @@ class StrategySolver {
                 patternDigits: {d1, d2},
                 eliminationCells: eliminationCells,
                 eliminationCandidates: eliminationCandidates,
+                eliminationRows: elimRows,
+                eliminationCols: elimCols,
+                eliminationBoxes: elimBoxes,
               );
             }
           }
@@ -562,6 +736,19 @@ class StrategySolver {
                   eliminationCandidates[cell] = digitsToRemove;
                 }
               }
+
+              // Compute result cells: cells that now have only 1 candidate after elimination
+              final resultCells = <(int, int)>{};
+              for (final cell in emptyCells) {
+                if (!triple.contains(cell)) {
+                  final cellCand = candidates[cell]!;
+                  final remainingAfterElimination = cellCand.difference(combinedCandidates);
+                  if (remainingAfterElimination.length == 1) {
+                    resultCells.add(cell);
+                  }
+                }
+              }
+
               return StrategyResult(
                 type: StrategyType.nakedTriple,
                 phase: StrategyPhase.elimination,
@@ -571,6 +758,7 @@ class StrategySolver {
                 patternDigits: combinedCandidates,
                 eliminationCells: eliminationCells,
                 eliminationCandidates: eliminationCandidates,
+                resultCells: resultCells,
               );
             }
           }
@@ -655,6 +843,31 @@ class StrategySolver {
             }
 
             if (eliminationCandidates.isNotEmpty) {
+              // Compute elimination zones for the pattern digits
+              final elimRows = <int>{};
+              final elimCols = <int>{};
+              final elimBoxes = <int>{};
+              for (final cell in tripleCells) {
+                final (r, c) = cell;
+                for (final d in {d1, d2, d3}) {
+                  // Check row
+                  for (int cc = 0; cc < 9; cc++) {
+                    if (board[r][cc] == d) elimRows.add(r);
+                  }
+                  // Check column
+                  for (int rr = 0; rr < 9; rr++) {
+                    if (board[rr][c] == d) elimCols.add(c);
+                  }
+                  // Check box
+                  for (int rr = (r ~/ 3) * 3; rr < (r ~/ 3) * 3 + 3; rr++) {
+                    for (int cc = (c ~/ 3) * 3; cc < (c ~/ 3) * 3 + 3; cc++) {
+                      if (board[rr][cc] == d) {
+                        elimBoxes.add((r ~/ 3) * 3 + (c ~/ 3));
+                      }
+                    }
+                  }
+                }
+              }
               return StrategyResult(
                 type: StrategyType.hiddenTriple,
                 phase: StrategyPhase.elimination,
@@ -664,6 +877,9 @@ class StrategySolver {
                 patternDigits: {d1, d2, d3},
                 eliminationCells: eliminationCells,
                 eliminationCandidates: eliminationCandidates,
+                eliminationRows: elimRows,
+                eliminationCols: elimCols,
+                eliminationBoxes: elimBoxes,
               );
             }
           }
@@ -749,6 +965,19 @@ class StrategySolver {
                     eliminationCandidates[cell] = digitsToRemove;
                   }
                 }
+
+                // Compute result cells: cells that now have only 1 candidate after elimination
+                final resultCells = <(int, int)>{};
+                for (final cell in emptyCells) {
+                  if (!quad.contains(cell)) {
+                    final cellCand = candidates[cell]!;
+                    final remainingAfterElimination = cellCand.difference(combinedCandidates);
+                    if (remainingAfterElimination.length == 1) {
+                      resultCells.add(cell);
+                    }
+                  }
+                }
+
                 return StrategyResult(
                   type: StrategyType.nakedQuad,
                   phase: StrategyPhase.elimination,
@@ -758,6 +987,7 @@ class StrategySolver {
                   patternDigits: combinedCandidates,
                   eliminationCells: eliminationCells,
                   eliminationCandidates: eliminationCandidates,
+                  resultCells: resultCells,
                 );
               }
             }
@@ -848,6 +1078,31 @@ class StrategySolver {
               }
 
               if (eliminationCandidates.isNotEmpty) {
+                // Compute elimination zones for the pattern digits
+                final elimRows = <int>{};
+                final elimCols = <int>{};
+                final elimBoxes = <int>{};
+                for (final cell in quadCells) {
+                  final (r, c) = cell;
+                  for (final d in {d1, d2, d3, d4}) {
+                    // Check row
+                    for (int cc = 0; cc < 9; cc++) {
+                      if (board[r][cc] == d) elimRows.add(r);
+                    }
+                    // Check column
+                    for (int rr = 0; rr < 9; rr++) {
+                      if (board[rr][c] == d) elimCols.add(c);
+                    }
+                    // Check box
+                    for (int rr = (r ~/ 3) * 3; rr < (r ~/ 3) * 3 + 3; rr++) {
+                      for (int cc = (c ~/ 3) * 3; cc < (c ~/ 3) * 3 + 3; cc++) {
+                        if (board[rr][cc] == d) {
+                          elimBoxes.add((r ~/ 3) * 3 + (c ~/ 3));
+                        }
+                      }
+                    }
+                  }
+                }
                 return StrategyResult(
                   type: StrategyType.hiddenQuad,
                   phase: StrategyPhase.elimination,
@@ -857,6 +1112,9 @@ class StrategySolver {
                   patternDigits: {d1, d2, d3, d4},
                   eliminationCells: eliminationCells,
                   eliminationCandidates: eliminationCandidates,
+                  eliminationRows: elimRows,
+                  eliminationCols: elimCols,
+                  eliminationBoxes: elimBoxes,
                 );
               }
             }
@@ -866,24 +1124,4 @@ class StrategySolver {
     }
     return null;
   }
-}
-
-/// Returns the first hidden single found on the board, or null if none.
-/// Maintains backward compatibility with existing tests.
-HiddenSingleResult? findHiddenSingle(List<List<int>> board) {
-  final solver = StrategySolver(board);
-  final result = solver.findHiddenSingle();
-  if (result == null) return null;
-
-  return HiddenSingleResult(
-    row: result.targetCell!.$1,
-    col: result.targetCell!.$2,
-    digit: result.patternDigits.first,
-    unitCells: result.unitCells,
-    eliminatorCells: result.eliminationCells,
-    unitType: result.unitType!,
-    eliminationRows: result.eliminationRows,
-    eliminationCols: result.eliminationCols,
-    eliminationBoxes: result.eliminationBoxes,
-  );
 }

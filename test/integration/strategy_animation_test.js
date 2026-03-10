@@ -6,7 +6,7 @@
 
 const { chromium } = require('playwright');
 
-const BASE_URL = 'http://localhost:9000';
+const BASE_URL = 'http://localhost:8080';
 
 async function waitForApp(page) {
   // Wait for Flutter app to load
@@ -287,7 +287,7 @@ async function runTests() {
   console.log('=== Sudoku Strategy Animation Tests ===\n');
 
   const browser = await chromium.launch({ headless: true });
-  const page = await browser.newPage();
+  const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
 
   try {
     await waitForApp(page);

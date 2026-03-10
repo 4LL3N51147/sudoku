@@ -11,6 +11,7 @@ class SudokuBoard extends StatelessWidget {
   final void Function(int row, int col) onCellTap;
   final StrategyHighlight? strategyHighlight;
   final Map<(int, int), Set<int>>? candidates;
+  final Set<int>? matchingCandidates;
 
   const SudokuBoard({
     super.key,
@@ -23,6 +24,7 @@ class SudokuBoard extends StatelessWidget {
     required this.onCellTap,
     this.strategyHighlight,
     this.candidates,
+    this.matchingCandidates,
   });
 
   bool _isHighlighted(int row, int col) {
@@ -126,8 +128,15 @@ class SudokuBoard extends StatelessWidget {
       // Compute box index (0-8) for this cell
       final boxIndex = (row ~/ 3) * 3 + (col ~/ 3);
 
-      if (sh.phase == StrategyPhase.target && sh.targetCell == cell) {
-        bgColor = const Color(0xFFC8E6C9); // green-100 — place digit here
+      if (sh.phase == StrategyPhase.target) {
+        // Check for targetCell (Hidden Single) or resultCells (Naked strategies)
+        final isTarget = sh.targetCell == cell;
+        final isResultCell = sh.resultCells.contains(cell);
+        if (isTarget || isResultCell) {
+          bgColor = const Color(0xFFC8E6C9); // green-100 — place digit here
+        } else {
+          bgColor = Colors.white;
+        }
       } else if (sh.phase == StrategyPhase.elimination) {
         // Check for red elimination zones (rows, cols, boxes containing the digit)
         final isInEliminationRow = sh.eliminationRows.contains(row);
@@ -141,12 +150,17 @@ class SudokuBoard extends StatelessWidget {
         // Check if this is an elimination cell (other cells where candidates get removed)
         final isEliminationCell = sh.eliminatorCells.contains(cell);
 
-        if (isPatternCell) {
+        // For hidden strategies, pattern cells and elimination cells are the same.
+        // Show amber (elimination) rather than purple when a cell is both.
+        if (isEliminationCell && isPatternCell) {
+          // Cells where candidates are being eliminated (also pattern cells for hidden strategies)
+          bgColor = const Color(0xFFFFE0B2); // amber-100
+        } else if (isPatternCell) {
           // The pair/triple/quad cells - highlight in purple for visibility
           bgColor = const Color(0xFFCE93D8); // purple-200
         } else if (isEliminationCell) {
-          // Cells where candidates are being eliminated
-          bgColor = const Color(0xFFFFE0B2); // amber-100
+          // Cells containing the digit (source of elimination) - more saturated red
+          bgColor = const Color(0xFFEF9A9A); // red-200
         } else if (isInEliminationZone) {
           // Cells in elimination zones (row/col/box with the digit) — red
           bgColor = const Color(0xFFFFCDD2); // red-100
@@ -232,6 +246,8 @@ class SudokuBoard extends StatelessWidget {
         final hasCandidate = cellCandidates.contains(digit);
         final isEliminated = _isEliminated(row, col, digit);
 
+        final isMatching = matchingCandidates?.contains(digit) ?? false;
+
         return Center(
           child: isEliminated
               ? Stack(
@@ -251,11 +267,19 @@ class SudokuBoard extends StatelessWidget {
                     ),
                   ],
                 )
-              : Text(
-                  '$digit',
-                  style: TextStyle(
-                    fontSize: 9,
-                    color: hasCandidate ? Colors.blue.shade700 : Colors.transparent,
+              : Container(
+                  decoration: BoxDecoration(
+                    color: isMatching ? const Color(0xFFBBDEFB) : null,  // blue-100
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                  padding: const EdgeInsets.all(1),
+                  child: Text(
+                    '$digit',
+                    style: TextStyle(
+                      fontSize: 9,
+                      color: hasCandidate ? Colors.blue.shade700 : Colors.transparent,
+                      fontWeight: isMatching ? FontWeight.bold : FontWeight.normal,
+                    ),
                   ),
                 ),
         );

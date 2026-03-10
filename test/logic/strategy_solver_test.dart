@@ -15,95 +15,68 @@ void main() {
         [2,8,7,4,1,9,6,3,5],
         [3,4,5,2,8,6,1,7,9],
       ];
-      expect(findHiddenSingle(board), isNull);
+      expect(StrategySolver(board).findHiddenSingle(), isNull);
     });
 
     test('returns null when no hidden singles exist', () {
-      // Board with empty cells but no hidden singles (every empty cell has
-      // multiple candidates in every unit it belongs to).
       final board = List.generate(9, (_) => List.filled(9, 0));
-      // Fill a nearly-empty board: only two givens so every digit has many
-      // candidate cells in every unit — no hidden single is forced.
       board[0][0] = 1;
       board[4][4] = 5;
-      expect(findHiddenSingle(board), isNull);
+      expect(StrategySolver(board).findHiddenSingle(), isNull);
     });
 
     test('finds a hidden single in a row', () {
       final board = List.generate(9, (_) => List.filled(9, 0));
-      // Simple board with one hidden single in row
-      // Row 0: digit 1 can only go in col 0 (col 1-8 have 1 elsewhere)
       board[0] = [0, 2, 3, 4, 5, 6, 7, 8, 9];
       board[1] = [1, 0, 0, 0, 0, 0, 0, 0, 0];
 
-      final result = findHiddenSingle(board);
-      // The solver may find this as a column or box single instead
-      expect(result ?? true, isTrue); // Just verify function runs without error
+      final result = StrategySolver(board).findHiddenSingle();
+      expect(result ?? true, isTrue);
     });
 
     test('eliminatorCells are non-empty when other candidates are blocked', () {
       final board = List.generate(9, (_) => List.filled(9, 0));
-      // Column 0 has digits 2-9, only 1 is missing at row 0
       for (int r = 1; r <= 8; r++) {
         board[r][0] = r + 1;
       }
       board[0] = [0, 2, 3, 4, 5, 6, 7, 8, 9];
-      final result = findHiddenSingle(board);
-      // Should find a hidden single
+      final result = StrategySolver(board).findHiddenSingle();
       expect(result, isNotNull);
     });
 
     test('finds a hidden single in a column', () {
       final board = List.generate(9, (_) => List.filled(9, 0));
-      // Column 0 contains 1-8 in rows 1-8; only row 0 is empty.
-      // Digit 9 appears nowhere in column 0, and is blocked everywhere else
-      // in column 0 except row 0 by box/row constraints seeded below.
-      // Simpler: col 0 has digits 1..8 placed, so the missing digit 9 must
-      // go in row 0 — a naked single in the column, which also qualifies as
-      // a hidden single (only one candidate position in the column).
       for (int r = 1; r <= 8; r++) {
-        board[r][0] = r; // col 0: rows 1-8 have digits 1-8
+        board[r][0] = r;
       }
-      // row 0, col 0 is the only empty cell in col 0; digit 9 is the only
-      // missing digit in col 0 and is legal there.
-      final result = findHiddenSingle(board);
+      final result = StrategySolver(board).findHiddenSingle();
       expect(result, isNotNull);
-      expect(result!.digit, 9);
-      expect(result.row, 0);
-      expect(result.col, 0);
+      expect(result!.patternDigits.first, 9);
+      expect(result.targetCell!.$1, 0);
+      expect(result.targetCell!.$2, 0);
     });
 
     test('finds a hidden single in a box', () {
       final board = List.generate(9, (_) => List.filled(9, 0));
-      // Top-left box (rows 0-2, cols 0-2): fill 8 of the 9 cells, leaving
-      // only (0,0) empty. The missing digit in the box can only go there.
       board[0] = [0, 2, 3, 0, 0, 0, 0, 0, 0];
       board[1] = [4, 5, 6, 0, 0, 0, 0, 0, 0];
       board[2] = [7, 8, 9, 0, 0, 0, 0, 0, 0];
-      // Digit 1 is missing from the box; no other row/col/box constraints
-      // block (0,0) for digit 1.
-      final result = findHiddenSingle(board);
-      // The scanner finds row hidden singles first; if none, then column,
-      // then box. In this board the box single at (0,0)=1 is also a row
-      // single (row 0 only has one empty cell for digit 1), so the result
-      // is found as a row single — still valid.
+      final result = StrategySolver(board).findHiddenSingle();
       expect(result, isNotNull);
-      expect(result!.digit, 1);
-      expect(result.row, 0);
-      expect(result.col, 0);
+      expect(result!.patternDigits.first, 1);
+      expect(result.targetCell!.$1, 0);
+      expect(result.targetCell!.$2, 0);
     });
 
     test('eliminatorCells is empty when target is the only empty cell in unit', () {
       final board = List.generate(9, (_) => List.filled(9, 0));
-      // Row 0 has exactly one empty cell at col 0; all other cols filled.
       board[0] = [0, 2, 3, 4, 5, 6, 7, 8, 9];
-      final result = findHiddenSingle(board);
+      final result = StrategySolver(board).findHiddenSingle();
       expect(result, isNotNull);
-      expect(result!.digit, 1);
-      expect(result.row, 0);
-      expect(result.col, 0);
-      // No other empty cells in the unit means no eliminators.
-      expect(result.eliminatorCells, isEmpty);
+      expect(result!.patternDigits.first, 1);
+      expect(result.targetCell!.$1, 0);
+      expect(result.targetCell!.$2, 0);
+      expect(result.eliminationCells, isEmpty);
     });
   });
 }

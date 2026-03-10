@@ -5,12 +5,15 @@ import 'package:flutter/services.dart';
 import '../logic/sudoku_generator.dart';
 import '../logic/strategy_solver.dart';
 import '../logic/game_state.dart';
+import '../logic/game_board.dart';
+import '../logic/selection_model.dart';
 import '../widgets/sudoku_board.dart';
 import '../widgets/number_pad.dart';
 import '../app_settings.dart';
 import '../widgets/settings_sheet.dart';
+import '../widgets/hint_banner.dart';
+import '../widgets/pause_overlay.dart';
 
-typedef _Move = ({int row, int col, int oldValue, int newValue});
 
 class GameScreen extends StatefulWidget {
   final Difficulty difficulty;
@@ -27,13 +30,9 @@ class GameScreen extends StatefulWidget {
 }
 
 class _GameScreenState extends State<GameScreen> {
-  late List<List<int>> _solution;
-  late List<List<bool>> _isGiven;
-  late List<List<int>> _board;
-  late List<List<bool>> _isError;
+  late GameBoard _gameBoard;
+  final SelectionModel _selection = SelectionModel();
 
-  int _selectedRow = -1;
-  int _selectedCol = -1;
   bool _isPaused = false;
   bool _isAnimating = false;
   bool _isCompleted = false;
@@ -42,11 +41,17 @@ class _GameScreenState extends State<GameScreen> {
   StrategyHighlight? _strategyHighlight;
   String? _hintMessage;
   int? _hintPhase; // null = no hint, 0 = scan, 1 = elimination, 2 = target
-  HiddenSingleResult? _currentHintResult;
   StrategyResult? _currentStrategyResult;
+  List<HintStep> _hintSteps = []; // Steps from strategy result
+  bool _useHintSteps = false; // Whether to use hintSteps
   Map<(int, int), Set<int>> _candidates = {};
-  final List<_Move> _undoStack = [];
+  Set<int> _completedDigits = {};  // Track digits placed in all 9 blocks
   AppSettings _settings = const AppSettings();
+
+  Set<int>? _getSelectedCellCandidates() {
+    if (_selection.row < 0 || _selection.col < 0) return null;
+    return _candidates[(_selection.row, _selection.col)];
+  }
 
   @override
   void initState() {
@@ -113,7 +118,7 @@ class _GameScreenState extends State<GameScreen> {
 
     // H: Hint
     if (key == LogicalKeyboardKey.keyH && !isCtrl) {
-      _runHiddenSingleHint();
+      _showStrategyPicker();
       return true;
     }
 
@@ -130,27 +135,30 @@ class _GameScreenState extends State<GameScreen> {
     if (widget.initialState != null) {
       // Load from imported state
       final state = widget.initialState!;
-      _solution = state.solution;
-      _isGiven = state.isGiven;
-      _board = state.board.map((row) => List<int>.from(row)).toList();
-      _isError = state.isError.map((row) => List<bool>.from(row)).toList();
-      _undoStack.clear();
-      _undoStack.addAll(state.undoStack);
+      _gameBoard = GameBoard(
+        puzzle: state.board,
+        solution: state.solution,
+      );
+      // Restore given cells
+      for (var r = 0; r < 9; r++) {
+        for (var c = 0; c < 9; c++) {
+          if (state.isGiven[r][c] && state.board[r][c] != 0) {
+            _gameBoard.setCell(r, c, state.board[r][c]);
+          }
+        }
+      }
       _elapsedSeconds = state.elapsedSeconds;
     } else {
-      // Generate new game (existing code)
+      // Generate new game
       final result = SudokuGenerator.generate(widget.difficulty);
-      _solution = result.solution;
-      _isGiven = List.generate(
-          9, (r) => List.generate(9, (c) => result.puzzle[r][c] != 0));
-      _board = result.puzzle.map((row) => List<int>.from(row)).toList();
-      _isError = List.generate(9, (_) => List.filled(9, false));
-      _undoStack.clear();
+      _gameBoard = GameBoard(
+        puzzle: result.puzzle,
+        solution: result.solution,
+      );
       _elapsedSeconds = 0;
     }
     // Keep the rest of the initialization:
-    _selectedRow = -1;
-    _selectedCol = -1;
+    _selection.clear();
     _isPaused = false;
     _isAnimating = false;
     _isCompleted = false;
@@ -176,82 +184,91 @@ class _GameScreenState extends State<GameScreen> {
   void _onCellTap(int row, int col) {
     if (_isPaused || _isAnimating || _isCompleted) return;
     setState(() {
-      _selectedRow = row;
-      _selectedCol = col;
+      _selection.select(row, col);
     });
   }
 
   void _onNumberInput(int num) {
     if (_isPaused || _isAnimating || _isCompleted) return;
-    if (_selectedRow < 0 || _selectedCol < 0) return;
-    if (_isGiven[_selectedRow][_selectedCol]) return;
-    if (_board[_selectedRow][_selectedCol] == num) return;  // no-op guard
+    if (_selection.row < 0 || _selection.col < 0) return;
+    if (_gameBoard.isGivenCell(_selection.row, _selection.col)) return;
+    if (_gameBoard.board[_selection.row][_selection.col] == num) return;
     setState(() {
-      _undoStack.add((
-        row: _selectedRow,
-        col: _selectedCol,
-        oldValue: _board[_selectedRow][_selectedCol],
-        newValue: num,
-      ));
-      _board[_selectedRow][_selectedCol] = num;
-      _updateErrors();
-      _candidates = computeCandidates(_board);
-      if (_checkWin()) {
-        _isCompleted = true;
-        _timer?.cancel();
-        _showWinDialog();
-      }
+      _fillCell(_selection.row, _selection.col, num);
     });
   }
 
   void _onErase() {
     if (_isPaused || _isAnimating || _isCompleted) return;
-    if (_selectedRow < 0 || _selectedCol < 0) return;
-    if (_isGiven[_selectedRow][_selectedCol]) return;
-    if (_board[_selectedRow][_selectedCol] == 0) return;  // no-op guard
+    if (_selection.row < 0 || _selection.col < 0) return;
+    if (_gameBoard.isGivenCell(_selection.row, _selection.col)) return;
+    if (_gameBoard.board[_selection.row][_selection.col] == 0) return;  // no-op guard
     setState(() {
-      _undoStack.add((
-        row: _selectedRow,
-        col: _selectedCol,
-        oldValue: _board[_selectedRow][_selectedCol],
-        newValue: 0,
-      ));
-      _board[_selectedRow][_selectedCol] = 0;
+      _gameBoard.eraseCell(_selection.row, _selection.col);
       _updateErrors();
-      _candidates = computeCandidates(_board);
+      _candidates = computeCandidates(_gameBoard.board);
+      _completedDigits = _calculateCompletedDigits();
     });
   }
 
+  void _fillCell(int row, int col, int digit) {
+    // Use GameBoard to set cell (includes undo stack and error update)
+    _gameBoard.setCell(row, col, digit);
+    _candidates = computeCandidates(_gameBoard.board);
+
+    // Track completed digits
+    _updateCompletedDigits(digit);
+
+    // Check win
+    if (_gameBoard.checkWin()) {
+      _isCompleted = true;
+      _timer?.cancel();
+      _showWinDialog();
+    }
+  }
+
+  void _updateCompletedDigits(int digit) {
+    // Count occurrences of this digit on the board
+    int count = 0;
+    for (int r = 0; r < 9; r++) {
+      for (int c = 0; c < 9; c++) {
+        if (_gameBoard.board[r][c] == digit) count++;
+      }
+    }
+    if (count >= 9) {
+      _completedDigits = {..._completedDigits, digit};
+    }
+  }
+
   void _undo() {
-    if (_isPaused || _isAnimating || _isCompleted || _undoStack.isEmpty) return;
+    if (_isPaused || _isAnimating || _isCompleted || !_gameBoard.canUndo) return;
     setState(() {
-      final move = _undoStack.removeLast();
-      _board[move.row][move.col] = move.oldValue;
-      _selectedRow = move.row;
-      _selectedCol = move.col;
-      _updateErrors();
+      _gameBoard.undo();
+      _selection.select(_selection.row, _selection.col);
+      _completedDigits = _calculateCompletedDigits();
     });
   }
 
   void _updateErrors() {
-    for (int r = 0; r < 9; r++) {
-      for (int c = 0; c < 9; c++) {
-        if (!_isGiven[r][c] && _board[r][c] != 0) {
-          _isError[r][c] = _board[r][c] != _solution[r][c];
-        } else {
-          _isError[r][c] = false;
+    _gameBoard.updateErrors();
+  }
+
+  Set<int> _calculateCompletedDigits() {
+    final completed = <int>{};
+    for (int digit = 1; digit <= 9; digit++) {
+      int count = 0;
+      for (int r = 0; r < 9; r++) {
+        for (int c = 0; c < 9; c++) {
+          if (_gameBoard.board[r][c] == digit) count++;
         }
       }
+      if (count >= 9) completed.add(digit);
     }
+    return completed;
   }
 
   bool _checkWin() {
-    for (int r = 0; r < 9; r++) {
-      for (int c = 0; c < 9; c++) {
-        if (_board[r][c] != _solution[r][c]) return false;
-      }
-    }
-    return true;
+    return _gameBoard.checkWin();
   }
 
   String _formatTime(int seconds) {
@@ -312,157 +329,83 @@ class _GameScreenState extends State<GameScreen> {
     });
   }
 
-  Future<void> _runHiddenSingleHint() async {
-    final result = findHiddenSingle(_board);
-    if (result == null) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No hidden singles on this board.')),
-      );
-      return;
-    }
-
-    _currentHintResult = result;
-    final unitLabel = switch (result.unitType) {
-      UnitType.row => 'row',
-      UnitType.column => 'column',
-      UnitType.box => 'box',
-    };
-
-    // If skip animation is enabled, fill immediately with no UI
-    if (_settings.skipHintAnimation) {
-      setState(() {
-        final oldValue = _board[result.row][result.col];
-        _undoStack.add((
-          row: result.row,
-          col: result.col,
-          oldValue: oldValue,
-          newValue: result.digit,
-        ));
-        _board[result.row][result.col] = result.digit;
-        _updateErrors();
-        _strategyHighlight = null;
-        _hintMessage = null;
-        _hintPhase = null;
-        _currentHintResult = null;
-        _isAnimating = false;
-        _selectedRow = result.row;
-        _selectedCol = result.col;
-        if (_checkWin()) {
-          _isCompleted = true;
-          _timer?.cancel();
-        }
-      });
-      if (_isCompleted) _showWinDialog();
-      return;
-    }
-
-    // Phase 0 — scan: highlight the unit
-    setState(() {
-      _isAnimating = true;
-      _hintPhase = 0;
-      _hintMessage =
-          'Scanning this $unitLabel — looking for digit ${result.digit}';
-      _strategyHighlight = StrategyHighlight(
-        phase: StrategyPhase.scan,
-        unitCells: result.unitCells,
-        unitType: result.unitType,
-      );
-    });
-  }
-
   void _advanceHintPhase() {
     if (_hintPhase == null) return; // no hint active
     if (_isPaused || _isCompleted) return;
 
-    // Check if we're using the old HiddenSingleResult or new StrategyResult
-    final hiddenSingle = _currentHintResult;
     final strategy = _currentStrategyResult;
+    if (strategy == null) return;
 
-    if (hiddenSingle == null && strategy == null) return;
-
-    // Handle legacy HiddenSingleResult
-    if (hiddenSingle != null && strategy == null) {
-      _advanceHintPhaseLegacy(hiddenSingle);
-      return;
+    // Use hintSteps if available
+    if (strategy.hintSteps.isNotEmpty) {
+      _useHintSteps = true;
+      _hintSteps = strategy.hintSteps;
     }
-
-    // Handle new StrategyResult
-    if (strategy != null) {
-      _advanceHintPhaseStrategy(strategy);
-    }
-  }
-
-  void _advanceHintPhaseLegacy(HiddenSingleResult result) {
-    if (_hintPhase! < 2) {
-      // Advance to next phase
-      setState(() {
-        _hintPhase = _hintPhase! + 1;
-        final unitLabel = switch (result.unitType) {
-          UnitType.row => 'row',
-          UnitType.column => 'column',
-          UnitType.box => 'box',
-        };
-
-        if (_hintPhase == 1) {
-          // Elimination phase
-          _hintMessage =
-              'These filled cells prevent ${result.digit} from going elsewhere in this $unitLabel';
-          _strategyHighlight = StrategyHighlight(
-            phase: StrategyPhase.elimination,
-            unitCells: result.unitCells,
-            eliminatorCells: result.eliminatorCells,
-            unitType: result.unitType,
-            eliminationRows: result.eliminationRows,
-            eliminationCols: result.eliminationCols,
-            eliminationBoxes: result.eliminationBoxes,
-          );
-        } else if (_hintPhase == 2) {
-          // Target phase
-          _hintMessage =
-              '${result.digit} has only one valid cell left in this $unitLabel!';
-          _strategyHighlight = StrategyHighlight(
-            phase: StrategyPhase.target,
-            unitCells: result.unitCells,
-            eliminatorCells: result.eliminatorCells,
-            targetCell: (result.row, result.col),
-            unitType: result.unitType,
-            eliminationRows: result.eliminationRows,
-            eliminationCols: result.eliminationCols,
-            eliminationBoxes: result.eliminationBoxes,
-          );
-        }
-      });
-    } else {
-      // Phase 2 complete - fill the cell
-      setState(() {
-        final oldValue = _board[result.row][result.col];
-        _undoStack.add((
-          row: result.row,
-          col: result.col,
-          oldValue: oldValue,
-          newValue: result.digit,
-        ));
-        _board[result.row][result.col] = result.digit;
-        _updateErrors();
-        _strategyHighlight = null;
-        _hintMessage = null;
-        _hintPhase = null;
-        _currentHintResult = null;
-        _isAnimating = false;
-        _selectedRow = result.row;
-        _selectedCol = result.col;
-        if (_checkWin()) {
-          _isCompleted = true;
-          _timer?.cancel();
-        }
-      });
-      if (_isCompleted) _showWinDialog();
-    }
+    
+    _advanceHintPhaseStrategy(strategy);
   }
 
   void _advanceHintPhaseStrategy(StrategyResult result) {
-    if (_hintPhase! < 2) {
+    // Use hintSteps if available
+    if (_useHintSteps && _hintSteps.isNotEmpty) {
+      // Check if there are more steps
+      final nextIndex = (_hintPhase ?? 0) + 1;
+      if (nextIndex < _hintSteps.length) {
+        setState(() {
+          _hintPhase = nextIndex;
+          final step = _hintSteps[nextIndex];
+          _hintMessage = step.message;
+          _strategyHighlight = StrategyHighlight(
+            phase: step.phase,
+            unitCells: step.unitCells,
+            patternCells: step.patternCells,
+            eliminatorCells: step.eliminatorCells,
+            patternDigits: step.patternDigits,
+            targetCell: step.targetCell,
+            unitType: step.unitType,
+            eliminationCandidates: step.eliminationCandidates,
+            eliminationRows: step.eliminationRows,
+            eliminationCols: step.eliminationCols,
+            eliminationBoxes: step.eliminationBoxes,
+            resultCells: step.resultCells,
+          );
+        });
+      } else {
+        // No more steps - finish the hint
+        _applyHintResult(result);
+      }
+      return;
+    }
+    
+    // Fall back to old behavior
+    // For Hidden Single, skip phase 1 - go from scan to elimination to target
+    final isHiddenSingle = result.type == StrategyType.hiddenSingle;
+    if (isHiddenSingle && _hintPhase == 1) {
+      // Skip phase 1 (pattern) and phase 2 (elimination) for Hidden Single
+      setState(() {
+        _hintPhase = 3; // Go directly to target
+        final unitLabel = result.unitType != null
+            ? switch (result.unitType!) {
+                UnitType.row => 'row',
+                UnitType.column => 'column',
+                UnitType.box => 'box',
+              }
+            : 'board';
+        final digit = result.patternDigits.first;
+        _hintMessage = 'Found $digit in this $unitLabel!';
+        _strategyHighlight = StrategyHighlight(
+          phase: StrategyPhase.target,
+          unitCells: result.unitCells,
+          patternCells: result.patternCells,
+          patternDigits: result.patternDigits,
+          targetCell: result.targetCell,
+          unitType: result.unitType,
+        );
+      });
+      return;
+    }
+    
+    if (_hintPhase! < 3) {
       // Advance to next phase
       setState(() {
         _hintPhase = _hintPhase! + 1;
@@ -496,22 +439,25 @@ class _GameScreenState extends State<GameScreen> {
             // Naked Quad: these 4 digits are locked in these 4 cells
             _hintMessage = 'Naked Quad: $digits are locked in these 4 cells';
           } else if (result.type == StrategyType.hiddenPair) {
-            // Hidden Pair: only these 2 cells can have these 2 digits
-            _hintMessage = 'Hidden Pair: $digits can ONLY go in these 2 cells';
+            // Hidden Pair: look for 2 digits that appear in exactly 2 cells - don't reveal which cells yet
+            _hintMessage = 'Looking for Hidden Pair: $digits in this $unitLabel';
           } else if (result.type == StrategyType.hiddenTriple) {
-            // Hidden Triple: only these 3 cells can have these 3 digits
-            _hintMessage = 'Hidden Triple: $digits can ONLY go in these 3 cells';
+            // Hidden Triple: look for 3 digits that appear in exactly 3 cells - don't reveal which cells yet
+            _hintMessage = 'Looking for Hidden Triple: $digits in this $unitLabel';
           } else if (result.type == StrategyType.hiddenQuad) {
-            // Hidden Quad: only these 4 cells can have these 4 digits
-            _hintMessage = 'Hidden Quad: $digits can ONLY go in these 4 cells';
+            // Hidden Quad: look for 4 digits that appear in exactly 4 cells - don't reveal which cells yet
+            _hintMessage = 'Looking for Hidden Quad: $digits in this $unitLabel';
           } else {
             _hintMessage = 'Found $digits in this $unitLabel';
           }
-          // Highlight the pattern cells (no elimination strikethrough in this phase)
+          // For hidden strategies, don't highlight specific cells in scan phase - 
+          // user can't know which cells until after elimination
+          // For naked strategies, show the pattern cells
+          final showPatternCells = isNaked;
           _strategyHighlight = StrategyHighlight(
             phase: StrategyPhase.scan,
             unitCells: result.unitCells,
-            patternCells: result.patternCells,
+            patternCells: showPatternCells ? result.patternCells : {},
             patternDigits: result.patternDigits,
             unitType: result.unitType,
           );
@@ -527,7 +473,7 @@ class _GameScreenState extends State<GameScreen> {
           } else {
             _hintMessage = '${result.patternDigits} can only go in ${result.patternCells.length} cell(s)!';
           }
-          // Show elimination
+          // Show elimination with zones
           _strategyHighlight = StrategyHighlight(
             phase: StrategyPhase.elimination,
             unitCells: result.unitCells,
@@ -535,11 +481,61 @@ class _GameScreenState extends State<GameScreen> {
             patternCells: result.patternCells,
             patternDigits: result.patternDigits,
             eliminationCandidates: result.eliminationCandidates,
+            eliminationRows: result.eliminationRows,
+            eliminationCols: result.eliminationCols,
+            eliminationBoxes: result.eliminationBoxes,
             targetCell: result.targetCell,
             unitType: result.unitType,
           );
+        } else if (_hintPhase == 3) {
+          // Phase 3: Show target/result - cells that can now be filled
+          if (isNaked && result.resultCells.isNotEmpty) {
+            // Naked strategies: show cells that now have single candidates
+            final resultCount = result.resultCells.length;
+            _hintMessage = 'Now you can fill $resultCount cell${resultCount > 1 ? 's' : ''} with single candidates!';
+            // Highlight result cells in green
+            _strategyHighlight = StrategyHighlight(
+              phase: StrategyPhase.target,
+              unitCells: result.unitCells,
+              patternCells: result.patternCells,
+              resultCells: result.resultCells,
+              patternDigits: result.patternDigits,
+              targetCell: result.targetCell,
+              unitType: result.unitType,
+            );
+          } else if (isHidden) {
+            // Hidden strategies: highlight pattern cells as the result (digits are locked)
+            _hintMessage = 'These cells are now locked to $digits!';
+            // Highlight pattern cells in green as the result
+            _strategyHighlight = StrategyHighlight(
+              phase: StrategyPhase.target,
+              unitCells: result.unitCells,
+              patternCells: result.patternCells,
+              patternDigits: result.patternDigits,
+              targetCell: result.targetCell,
+              unitType: result.unitType,
+            );
+          } else if (result.targetCell != null) {
+            // Hidden Single: show the target cell
+            final digit = result.patternDigits.first;
+            _hintMessage = 'Now you can place $digit in this cell!';
+            _strategyHighlight = StrategyHighlight(
+              phase: StrategyPhase.target,
+              unitCells: result.unitCells,
+              patternCells: result.patternCells,
+              patternDigits: result.patternDigits,
+              targetCell: result.targetCell,
+              unitType: result.unitType,
+            );
+          } else {
+            // Fallback - skip to completion
+            _hintPhase = 4; // Will trigger completion in next check
+          }
         }
       });
+    } else if (_useHintSteps && (_hintPhase ?? 0) >= _hintSteps.length - 1) {
+      // All hintSteps completed - finish the hint
+      _applyHintResult(result);
     } else {
       // Phase 2 complete - if there's a target cell, fill it
       if (result.targetCell != null) {
@@ -550,15 +546,10 @@ class _GameScreenState extends State<GameScreen> {
         setState(() {
           if (shouldAutoFill) {
             // Fill the cell automatically for Hidden Single
-            final oldValue = _board[row][col];
-            _undoStack.add((
-              row: row,
-              col: col,
-              oldValue: oldValue,
-              newValue: result.patternDigits.first,
-            ));
-            _board[row][col] = result.patternDigits.first;
+            _gameBoard.setCell(row, col, result.patternDigits.first);
             _updateErrors();
+            // Clear candidates - pencil marks should not be shown after hidden single
+            _candidates = {};
           }
           // Apply elimination candidates to _candidates
           if (result.eliminationCandidates.isNotEmpty) {
@@ -577,14 +568,8 @@ class _GameScreenState extends State<GameScreen> {
           _hintPhase = null;
           _currentStrategyResult = null;
           _isAnimating = false;
-          _selectedRow = row;
-          _selectedCol = col;
-          if (shouldAutoFill && _checkWin()) {
-            _isCompleted = true;
-            _timer?.cancel();
-          }
+          _selection.select(row, col);
         });
-        if (_isCompleted) _showWinDialog();
       } else {
         // Elimination only - apply eliminations to candidates
         setState(() {
@@ -606,6 +591,62 @@ class _GameScreenState extends State<GameScreen> {
           _isAnimating = false;
         });
       }
+    }
+  }
+
+  void _applyHintResult(StrategyResult result) {
+    // Apply the hint result - fill target cell or apply eliminations
+    if (result.targetCell != null) {
+      final (row, col) = result.targetCell!;
+      final bool shouldAutoFill = result.type == StrategyType.hiddenSingle;
+      setState(() {
+        if (shouldAutoFill) {
+          _gameBoard.setCell(row, col, result.patternDigits.first);
+          _updateErrors();
+          _candidates = {};
+        }
+        // Apply elimination candidates
+        if (result.eliminationCandidates.isNotEmpty) {
+          final updated = Map<(int, int), Set<int>>.from(_candidates);
+          for (final entry in result.eliminationCandidates.entries) {
+            final cell = entry.key;
+            final digits = entry.value;
+            if (updated.containsKey(cell)) {
+              updated[cell] = updated[cell]!.difference(digits);
+            }
+          }
+          _candidates = updated;
+        }
+        _strategyHighlight = null;
+        _hintMessage = null;
+        _hintPhase = null;
+        _currentStrategyResult = null;
+        _hintSteps = [];
+        _useHintSteps = false;
+        _isAnimating = false;
+        _selection.select(row, col);
+      });
+    } else {
+      setState(() {
+        if (result.eliminationCandidates.isNotEmpty) {
+          final updated = Map<(int, int), Set<int>>.from(_candidates);
+          for (final entry in result.eliminationCandidates.entries) {
+            final cell = entry.key;
+            final digits = entry.value;
+            if (updated.containsKey(cell)) {
+              updated[cell] = updated[cell]!.difference(digits);
+            }
+          }
+          _candidates = updated;
+        }
+        _strategyHighlight = null;
+        _hintMessage = null;
+        _hintPhase = null;
+        _currentStrategyResult = null;
+        _hintSteps = [];
+        _useHintSteps = false;
+        _isAnimating = false;
+      });
     }
   }
 
@@ -690,11 +731,11 @@ class _GameScreenState extends State<GameScreen> {
     // For non-HiddenSingle strategies, compute candidates first
     if (type != StrategyType.hiddenSingle) {
       setState(() {
-        _candidates = computeCandidates(_board);
+        _candidates = computeCandidates(_gameBoard.board);
       });
     }
 
-    final solver = StrategySolver(_board);
+    final solver = StrategySolver(_gameBoard.board);
     final result = switch (type) {
       StrategyType.hiddenSingle => solver.findHiddenSingle(),
       StrategyType.nakedPair => solver.findNakedPair(),
@@ -733,22 +774,16 @@ class _GameScreenState extends State<GameScreen> {
         assert(result.targetCell != null, 'Hidden Single result must have a targetCell');
         final (row, col) = result.targetCell!;
         setState(() {
-          final oldValue = _board[row][col];
-          _undoStack.add((
-            row: row,
-            col: col,
-            oldValue: oldValue,
-            newValue: result.patternDigits.first,
-          ));
-          _board[row][col] = result.patternDigits.first;
+          // Use setCell which properly handles the undo stack
+          _gameBoard.setCell(row, col, result.patternDigits.first);
+          // Don't compute candidates - they should only be shown for elimination strategies
           _updateErrors();
           _strategyHighlight = null;
           _hintMessage = null;
           _hintPhase = null;
           _currentStrategyResult = null;
           _isAnimating = false;
-          _selectedRow = row;
-          _selectedCol = col;
+          _selection.select(row, col);
           if (_checkWin()) {
             _isCompleted = true;
             _timer?.cancel();
@@ -831,11 +866,11 @@ class _GameScreenState extends State<GameScreen> {
     final state = GameState(
       difficulty: widget.difficulty,
       elapsedSeconds: _elapsedSeconds,
-      board: _board,
-      solution: _solution,
-      isGiven: _isGiven,
-      isError: _isError,
-      undoStack: _undoStack,
+      board: _gameBoard.board,
+      solution: _gameBoard.solution,
+      isGiven: _gameBoard.isGivenBoard,
+      isError: _gameBoard.isErrorBoard,
+      undoStack: _gameBoard.undoStack,
       savedAt: DateTime.now(),
     );
 
@@ -884,7 +919,13 @@ class _GameScreenState extends State<GameScreen> {
             return Stack(
               children: [
                 isWide ? _buildWideLayout() : _buildNarrowLayout(),
-                if (_isPaused) _buildPauseOverlay(),
+                if (_isPaused) PauseOverlay(
+        onResume: _togglePause,
+        onQuit: () {
+          _timer?.cancel();
+          Navigator.pop(context);
+        },
+      ),
               ],
             );
           },
@@ -902,15 +943,16 @@ class _GameScreenState extends State<GameScreen> {
         Expanded(
           child: Center(
             child: SudokuBoard(
-              board: _board,
-              isGiven: _isGiven,
-              isError: _isError,
-              selectedRow: _selectedRow,
-              selectedCol: _selectedCol,
+              board: _gameBoard.board,
+              isGiven: _gameBoard.isGivenBoard,
+              isError: _gameBoard.isErrorBoard,
+              selectedRow: _selection.row,
+              selectedCol: _selection.col,
               isPaused: _isPaused,
               onCellTap: _onCellTap,
               strategyHighlight: _strategyHighlight,
               candidates: _candidates,
+              matchingCandidates: _getSelectedCellCandidates(),
             ),
           ),
         ),
@@ -918,7 +960,13 @@ class _GameScreenState extends State<GameScreen> {
         // Reserve space for hint banner to prevent layout shift
         SizedBox(
           height: _hintMessage != null ? 52 : 0,
-          child: _hintMessage != null ? _buildHintBanner(_hintMessage!) : const SizedBox(),
+          child: _hintMessage != null
+          ? HintBanner(
+              message: _hintMessage!,
+              hasNextButton: _hintPhase != null && _hintPhase! <= 3,
+              onNextPressed: (_isPaused || _isCompleted) ? null : _advanceHintPhase,
+            )
+          : const SizedBox(),
         ),
         const SizedBox(height: 8),
         Padding(
@@ -926,6 +974,7 @@ class _GameScreenState extends State<GameScreen> {
           child: NumberPad(
             onNumber: _onNumberInput,
             onErase: _onErase,
+            disabledDigits: _completedDigits,
           ),
         ),
         const SizedBox(height: 12),
@@ -944,15 +993,16 @@ class _GameScreenState extends State<GameScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Center(
               child: SudokuBoard(
-                board: _board,
-                isGiven: _isGiven,
-                isError: _isError,
-                selectedRow: _selectedRow,
-                selectedCol: _selectedCol,
+                board: _gameBoard.board,
+                isGiven: _gameBoard.isGivenBoard,
+                isError: _gameBoard.isErrorBoard,
+                selectedRow: _selection.row,
+                selectedCol: _selection.col,
                 isPaused: _isPaused,
                 onCellTap: _onCellTap,
                 strategyHighlight: _strategyHighlight,
                 candidates: _candidates,
+                matchingCandidates: _getSelectedCellCandidates(),
               ),
             ),
           ),
@@ -961,7 +1011,13 @@ class _GameScreenState extends State<GameScreen> {
         // Reserve space for hint banner to prevent layout shift
         SizedBox(
           height: _hintMessage != null ? 52 : 0,
-          child: _hintMessage != null ? _buildHintBanner(_hintMessage!) : const SizedBox(),
+          child: _hintMessage != null
+          ? HintBanner(
+              message: _hintMessage!,
+              hasNextButton: _hintPhase != null && _hintPhase! <= 3,
+              onNextPressed: (_isPaused || _isCompleted) ? null : _advanceHintPhase,
+            )
+          : const SizedBox(),
         ),
         const SizedBox(height: 8),
         Padding(
@@ -969,6 +1025,7 @@ class _GameScreenState extends State<GameScreen> {
           child: NumberPad(
             onNumber: _onNumberInput,
             onErase: _onErase,
+            disabledDigits: _completedDigits,
           ),
         ),
         const SizedBox(height: 12),
@@ -999,7 +1056,7 @@ class _GameScreenState extends State<GameScreen> {
                 const SizedBox(width: 4),
                 IconButton(
                   icon: const Icon(Icons.undo, size: 20),
-                  onPressed: (_isPaused || _isAnimating || _isCompleted || _undoStack.isEmpty)
+                  onPressed: (_isPaused || _isAnimating || _isCompleted || !_gameBoard.canUndo)
                       ? null
                       : _undo,
                   color: const Color(0xFF1A237E),
@@ -1093,7 +1150,7 @@ class _GameScreenState extends State<GameScreen> {
           ),
           IconButton(
             icon: const Icon(Icons.undo),
-            onPressed: (_isPaused || _isAnimating || _isCompleted || _undoStack.isEmpty)
+            onPressed: (_isPaused || _isAnimating || _isCompleted || !_gameBoard.canUndo)
                 ? null
                 : _undo,
             color: const Color(0xFF1A237E),
@@ -1162,106 +1219,4 @@ class _GameScreenState extends State<GameScreen> {
     }
   }
 
-  Widget _buildHintBanner(String message) {
-    final bool hasNextButton = _hintPhase != null && _hintPhase! <= 2;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          color: const Color(0xFFE8EAF6),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: const Color(0xFF1A237E), width: 0.5),
-        ),
-        child: Row(
-          children: [
-            const Icon(Icons.info_outline,
-                color: Color(0xFF1A237E), size: 16),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                message,
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: Color(0xFF1A237E),
-                ),
-              ),
-            ),
-            if (hasNextButton) ...[
-              const SizedBox(width: 8),
-              TextButton(
-                onPressed: (_isPaused || _isCompleted)
-                    ? null
-                    : _advanceHintPhase,
-                child: const Text(
-                  'Next \u2192',
-                  style: TextStyle(
-                    color: Color(0xFF1A237E),
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPauseOverlay() {
-    return Positioned.fill(
-      child: Container(
-        color: Colors.black54,
-        child: Center(
-          child: Card(
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(24)),
-            elevation: 12,
-            child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 48, vertical: 40),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.pause_circle_filled_rounded,
-                      size: 64, color: Color(0xFF1A237E)),
-                  const SizedBox(height: 12),
-                  const Text(
-                    'Game Paused',
-                    style: TextStyle(
-                        fontSize: 24, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 28),
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1A237E),
-                      foregroundColor: Colors.white,
-                      minimumSize: const Size(200, 52),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14)),
-                    ),
-                    icon: const Icon(Icons.play_arrow_rounded),
-                    label: const Text('Resume',
-                        style: TextStyle(fontSize: 17)),
-                    onPressed: _togglePause,
-                  ),
-                  const SizedBox(height: 12),
-                  TextButton(
-                    onPressed: () {
-                      _timer?.cancel();
-                      Navigator.pop(context);
-                    },
-                    child: const Text(
-                      'Quit to Menu',
-                      style: TextStyle(color: Colors.redAccent, fontSize: 15),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 }

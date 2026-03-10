@@ -37,6 +37,24 @@ sudoku/
 | Platform | Web (primary), mobile-capable |
 | Package name | `sudoku` |
 
+## MCP Servers & Tools
+
+This project has **Dart MCP server** available. Prioritize using them over shell commands:
+
+- **Run tests**: Use `mcp__dart__run_tests` tool instead of `flutter test`
+- **Analyze code**: Use `mcp__dart__analyze_files` tool instead of `flutter analyze`
+- **Format code**: Use `mcp__dart__dart_format` tool instead of `dart format`
+- **Run fixes**: Use `mcp__dart__dart_fix` tool
+- **Launch app**: Use `mcp__dart__launch_app` to run on connected devices
+- **List devices**: Use `mcp__dart__list_devices` to see available targets
+- **Hot reload/restart**: Use `mcp__dart__hot_reload` or `mcp__dart__hot_restart`
+
+**Flutter Inspector Workflow (for debugging UI):**
+1. Launch app with `mcp__dart__launch_app` → returns DTD URI
+2. Connect to DTD: `mcp__dart__connect_dart_tooling_daemon` with the URI
+3. Use inspector tools: `get_widget_tree`, `get_selected_widget`, `get_runtime_errors`
+4. Reconnect if app restarts or terminates — DTD URI changes each session
+
 ## Build & Run
 
 ```bash
@@ -69,6 +87,11 @@ below for setup details.
 - **Pure logic in `lib/logic/`** — no Flutter imports; fully unit-testable.
 - **Widgets are stateless and prop-driven** — `SudokuBoard` has zero knowledge
   of game state; all rendering flows from parameters.
+- **Hint strategy elimination zones** — Debugging hints:
+  - `HintStep.eliminationBoxes` shows which 3x3 boxes contain the digit
+  - For row hidden single: boxes in that row
+  - For column hidden single: boxes in that column (not all boxes with digit)
+  - For box hidden single: rows/cols in that box
 - **Animation guards** — when adding any async animation or timed sequence,
   guard ALL input handlers (`_onCellTap`, `_onNumberInput`, `_onErase`) and
   interactive buttons against the animating flag, not just the trigger button.
