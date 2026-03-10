@@ -257,57 +257,73 @@ class StrategySolver {
           eliminators.addAll(_findBlockers(r, c, digit));
 
           // Compute elimination zones per empty cell - which specific constraint eliminates this cell
+          // Priority: box > row > column (boxes take priority when there's intersection)
           if (unitType == UnitType.row) {
-            // For row hidden single: check if column c has the digit elsewhere
-            for (int rr = 0; rr < 9; rr++) {
-              if (rr != tr && board[rr][c] == digit) {
-                eliminationCols.add(c);
-                break;
-              }
-            }
-            // Check if the box containing this cell (r, c) has the digit elsewhere in that box
+            // For row hidden single: boxes take priority over columns
+            // First check if the box containing this cell (r, c) has the digit elsewhere
             final cellBox = (r ~/ 3) * 3 + (c ~/ 3);
+            bool boxHasDigit = false;
             for (int rr = (cellBox ~/ 3) * 3; rr < (cellBox ~/ 3) * 3 + 3; rr++) {
               for (int cc = (cellBox % 3) * 3; cc < (cellBox % 3) * 3 + 3; cc++) {
                 if ((rr, cc) != (r, c) && board[rr][cc] == digit) {
                   eliminationBoxes.add(cellBox);
+                  boxHasDigit = true;
                   break;
                 }
               }
-              if (eliminationBoxes.contains(cellBox)) break;
+              if (boxHasDigit) break;
+            }
+            // Only check column if box doesn't have the digit (boxes take priority)
+            if (!boxHasDigit) {
+              for (int rr = 0; rr < 9; rr++) {
+                if (rr != tr && board[rr][c] == digit) {
+                  eliminationCols.add(c);
+                  break;
+                }
+              }
             }
           } else if (unitType == UnitType.column) {
-            // For column hidden single: check if row r has the digit elsewhere
-            for (int cc = 0; cc < 9; cc++) {
-              if (cc != tc && board[r][cc] == digit) {
-                eliminationRows.add(r);
-                break;
-              }
-            }
-            // Check if the box containing this cell (r, c) has the digit elsewhere in that box
+            // For column hidden single: boxes take priority over rows
+            // First check if the box containing this cell (r, c) has the digit elsewhere
             final cellBox = (r ~/ 3) * 3 + (c ~/ 3);
+            bool boxHasDigit = false;
             for (int rr = (cellBox ~/ 3) * 3; rr < (cellBox ~/ 3) * 3 + 3; rr++) {
               for (int cc = (cellBox % 3) * 3; cc < (cellBox % 3) * 3 + 3; cc++) {
                 if ((rr, cc) != (r, c) && board[rr][cc] == digit) {
                   eliminationBoxes.add(cellBox);
+                  boxHasDigit = true;
                   break;
                 }
               }
-              if (eliminationBoxes.contains(cellBox)) break;
+              if (boxHasDigit) break;
+            }
+            // Only check row if box doesn't have the digit (boxes take priority)
+            if (!boxHasDigit) {
+              for (int cc = 0; cc < 9; cc++) {
+                if (cc != tc && board[r][cc] == digit) {
+                  eliminationRows.add(r);
+                  break;
+                }
+              }
             }
           } else if (unitType == UnitType.box) {
-            // For box hidden single: check if row r has the digit elsewhere
+            // For box hidden single: rows take priority over columns
+            // First check if row r has the digit elsewhere
+            bool rowHasDigit = false;
             for (int cc = 0; cc < 9; cc++) {
               if (board[r][cc] == digit && cc != c) {
                 eliminationRows.add(r);
+                rowHasDigit = true;
                 break;
               }
             }
-            // Check if column c in this box has the digit elsewhere
-            for (int rr = 0; rr < 9; rr++) {
-              if (board[rr][c] == digit && rr != r) {
-                eliminationCols.add(c);
-                break;
+            // Only check column if row doesn't have the digit (rows take priority)
+            if (!rowHasDigit) {
+              for (int rr = 0; rr < 9; rr++) {
+                if (board[rr][c] == digit && rr != r) {
+                  eliminationCols.add(c);
+                  break;
+                }
               }
             }
           }
@@ -365,7 +381,7 @@ class StrategySolver {
             patternDigits: {digit},
             targetCell: (tr, tc),
             unitType: unitType,
-            eliminatorCells: eliminatorCells,
+            eliminatorCells: eliminators,
             eliminationRows: eliminationRows,
             eliminationCols: eliminationCols,
             eliminationBoxes: eliminationBoxes,

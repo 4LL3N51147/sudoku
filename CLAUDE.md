@@ -92,9 +92,10 @@ below for setup details.
   of game state; all rendering flows from parameters.
 - **Hint strategy elimination zones** — The elimination zone shows which specific constraint
   (column, row, or box) actually eliminates each empty cell, NOT all constraints containing
-  the digit. For row hidden single: for each empty cell (r,c), check if column c OR the box
-  containing (r,c) has the digit - only mark those. Same logic applies for column/box modes.
+  the digit. Priority: box > row > column. When a box contains the digit, rows/cols are not
+  added to avoid duplicates. Same priority applies for box hidden single (row > column).
   - `HintStep.eliminationBoxes` shows which 3x3 boxes contain the digit
+  - `HintStep.eliminatorCells` should equal `eliminators` (the blocker cells from _findBlockers)
 - **Animation guards** — when adding any async animation or timed sequence,
   guard ALL input handlers (`_onCellTap`, `_onNumberInput`, `_onErase`) and
   interactive buttons against the animating flag, not just the trigger button.
