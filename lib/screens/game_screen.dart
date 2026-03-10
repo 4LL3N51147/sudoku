@@ -12,6 +12,7 @@ import '../app_settings.dart';
 import '../widgets/settings_sheet.dart';
 import '../widgets/pause_overlay.dart';
 import '../widgets/game_header.dart';
+import '../widgets/hint_controller.dart';
 
 
 class GameScreen extends StatefulWidget {
@@ -650,79 +651,9 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _showStrategyPicker() {
-    showModalBottomSheet(
+    HintController.showStrategyPicker(
       context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (_) => DraggableScrollableSheet(
-        initialChildSize: 0.6,
-        minChildSize: 0.3,
-        maxChildSize: 0.9,
-        expand: false,
-        builder: (_, scrollController) => ListView(
-          controller: scrollController,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          children: [
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Text(
-                'Choose a Strategy',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-            ),
-            const Divider(),
-            _strategyTile(
-              'Hidden Single',
-              'Find a digit that can only go in one cell within a row, column, or box',
-              () => _runStrategyHint(StrategyType.hiddenSingle),
-            ),
-            _strategyTile(
-              'Naked Pair',
-              'Find two cells in a unit with the same two candidates',
-              () => _runStrategyHint(StrategyType.nakedPair),
-            ),
-            _strategyTile(
-              'Hidden Pair',
-              'Find two cells in a unit that are the only ones for two digits',
-              () => _runStrategyHint(StrategyType.hiddenPair),
-            ),
-            _strategyTile(
-              'Naked Triple',
-              'Find three cells in a unit with the same three candidates',
-              () => _runStrategyHint(StrategyType.nakedTriple),
-            ),
-            _strategyTile(
-              'Hidden Triple',
-              'Find three cells in a unit that are the only ones for three digits',
-              () => _runStrategyHint(StrategyType.hiddenTriple),
-            ),
-            _strategyTile(
-              'Naked Quad',
-              'Find four cells in a unit with the same four candidates',
-              () => _runStrategyHint(StrategyType.nakedQuad),
-            ),
-            _strategyTile(
-              'Hidden Quad',
-              'Find four cells in a unit that are the only ones for four digits',
-              () => _runStrategyHint(StrategyType.hiddenQuad),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _strategyTile(String title, String subtitle, VoidCallback onTap) {
-    return ListTile(
-      leading: const Icon(Icons.lightbulb_outline, color: Color(0xFF1A237E)),
-      title: Text(title),
-      subtitle: Text(subtitle),
-      onTap: () {
-        Navigator.pop(context);
-        onTap();
-      },
+      onStrategySelected: _runStrategyHint,
     );
   }
 
@@ -939,6 +870,17 @@ class _GameScreenState extends State<GameScreen> {
       children: [
         _buildHeader(isWide: true),
         const SizedBox(height: 12),
+        HintController(
+          strategyHighlight: _strategyHighlight,
+          hintMessage: _hintMessage,
+          hintPhase: _hintPhase,
+          isAnimating: _isAnimating,
+          isPaused: _isPaused,
+          isCompleted: _isCompleted,
+          settings: _settings,
+          onHintRequested: _showStrategyPicker,
+          onAdvanceHint: _advanceHintPhase,
+        ),
         Expanded(
           child: GameBoardContainer(
             board: _gameBoard.board,
@@ -967,6 +909,17 @@ class _GameScreenState extends State<GameScreen> {
       children: [
         _buildHeader(isWide: false),
         const SizedBox(height: 12),
+        HintController(
+          strategyHighlight: _strategyHighlight,
+          hintMessage: _hintMessage,
+          hintPhase: _hintPhase,
+          isAnimating: _isAnimating,
+          isPaused: _isPaused,
+          isCompleted: _isCompleted,
+          settings: _settings,
+          onHintRequested: _showStrategyPicker,
+          onAdvanceHint: _advanceHintPhase,
+        ),
         Expanded(
           child: GameBoardContainer(
             board: _gameBoard.board,

@@ -119,6 +119,24 @@ class StrategyHighlight {
     this.eliminationBoxes = const {},
     this.resultCells = const {},
   });
+
+  /// Creates a StrategyHighlight from a HintStep
+  factory StrategyHighlight.fromHintStep(HintStep step) {
+    return StrategyHighlight(
+      phase: step.phase,
+      unitCells: step.unitCells,
+      patternCells: step.patternCells,
+      eliminatorCells: step.eliminatorCells,
+      targetCell: step.targetCell,
+      unitType: step.unitType,
+      patternDigits: step.patternDigits,
+      eliminationCandidates: step.eliminationCandidates,
+      eliminationRows: step.eliminationRows,
+      eliminationCols: step.eliminationCols,
+      eliminationBoxes: step.eliminationBoxes,
+      resultCells: step.resultCells,
+    );
+  }
 }
 
 bool _isLegal(List<List<int>> board, int row, int col, int digit) {
