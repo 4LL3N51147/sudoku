@@ -48,7 +48,7 @@ class HintController extends StatelessWidget {
           ),
         // Hint button with isAnimating guard
         OutlinedButton.icon(
-          onPressed: isAnimating ? null : onHintRequested,
+          onPressed: _isDisabled ? null : onHintRequested,
           icon: const Icon(Icons.lightbulb_outline),
           label: const Text('Hint'),
           style: OutlinedButton.styleFrom(
