@@ -7,11 +7,9 @@ import '../logic/strategy_solver.dart';
 import '../logic/game_state.dart';
 import '../logic/game_board.dart';
 import '../logic/selection_model.dart';
-import '../widgets/sudoku_board.dart';
-import '../widgets/number_pad.dart';
+import '../widgets/game_board_container.dart';
 import '../app_settings.dart';
 import '../widgets/settings_sheet.dart';
-import '../widgets/hint_banner.dart';
 import '../widgets/pause_overlay.dart';
 import '../widgets/game_header.dart';
 
@@ -942,43 +940,27 @@ class _GameScreenState extends State<GameScreen> {
         _buildHeader(isWide: true),
         const SizedBox(height: 12),
         Expanded(
-          child: Center(
-            child: SudokuBoard(
-              board: _gameBoard.board,
-              isGiven: _gameBoard.isGivenBoard,
-              isError: _gameBoard.isErrorBoard,
-              selectedRow: _selection.row,
-              selectedCol: _selection.col,
-              isPaused: _isPaused,
-              onCellTap: _onCellTap,
-              strategyHighlight: _strategyHighlight,
-              candidates: _candidates,
-              matchingCandidates: _getSelectedCellCandidates(),
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-        // Reserve space for hint banner to prevent layout shift
-        SizedBox(
-          height: _hintMessage != null ? 52 : 0,
-          child: _hintMessage != null
-          ? HintBanner(
-              message: _hintMessage!,
-              hasNextButton: _hintPhase != null && _hintPhase! <= 3,
-              onNextPressed: (_isPaused || _isCompleted) ? null : _advanceHintPhase,
-            )
-          : const SizedBox(),
-        ),
-        const SizedBox(height: 8),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: NumberPad(
-            onNumber: _onNumberInput,
-            onErase: _onErase,
+          child: GameBoardContainer(
+            board: _gameBoard.board,
+            isGiven: _gameBoard.isGivenBoard,
+            isError: _gameBoard.isErrorBoard,
+            selectedRow: _selection.row,
+            selectedCol: _selection.col,
+            isPaused: _isPaused,
+            isAnimating: _isAnimating,
+            strategyHighlight: _strategyHighlight,
+            candidates: _candidates,
+            matchingCandidates: _getSelectedCellCandidates(),
             disabledDigits: _completedDigits,
+            hintMessage: _hintMessage,
+            hintPhase: _hintPhase,
+            isCompleted: _isCompleted,
+            onNextPressed: _advanceHintPhase,
+            onCellTap: _onCellTap,
+            onNumberInput: _onNumberInput,
+            onErase: _onErase,
           ),
         ),
-        const SizedBox(height: 12),
       ],
     );
   }
@@ -990,46 +972,27 @@ class _GameScreenState extends State<GameScreen> {
         _buildHeader(isWide: false),
         const SizedBox(height: 12),
         Expanded(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Center(
-              child: SudokuBoard(
-                board: _gameBoard.board,
-                isGiven: _gameBoard.isGivenBoard,
-                isError: _gameBoard.isErrorBoard,
-                selectedRow: _selection.row,
-                selectedCol: _selection.col,
-                isPaused: _isPaused,
-                onCellTap: _onCellTap,
-                strategyHighlight: _strategyHighlight,
-                candidates: _candidates,
-                matchingCandidates: _getSelectedCellCandidates(),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-        // Reserve space for hint banner to prevent layout shift
-        SizedBox(
-          height: _hintMessage != null ? 52 : 0,
-          child: _hintMessage != null
-          ? HintBanner(
-              message: _hintMessage!,
-              hasNextButton: _hintPhase != null && _hintPhase! <= 3,
-              onNextPressed: (_isPaused || _isCompleted) ? null : _advanceHintPhase,
-            )
-          : const SizedBox(),
-        ),
-        const SizedBox(height: 8),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: NumberPad(
-            onNumber: _onNumberInput,
-            onErase: _onErase,
+          child: GameBoardContainer(
+            board: _gameBoard.board,
+            isGiven: _gameBoard.isGivenBoard,
+            isError: _gameBoard.isErrorBoard,
+            selectedRow: _selection.row,
+            selectedCol: _selection.col,
+            isPaused: _isPaused,
+            isAnimating: _isAnimating,
+            strategyHighlight: _strategyHighlight,
+            candidates: _candidates,
+            matchingCandidates: _getSelectedCellCandidates(),
             disabledDigits: _completedDigits,
+            hintMessage: _hintMessage,
+            hintPhase: _hintPhase,
+            isCompleted: _isCompleted,
+            onNextPressed: _advanceHintPhase,
+            onCellTap: _onCellTap,
+            onNumberInput: _onNumberInput,
+            onErase: _onErase,
           ),
         ),
-        const SizedBox(height: 12),
       ],
     );
   }
