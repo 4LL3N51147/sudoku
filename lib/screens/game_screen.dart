@@ -13,6 +13,7 @@ import '../app_settings.dart';
 import '../widgets/settings_sheet.dart';
 import '../widgets/hint_banner.dart';
 import '../widgets/pause_overlay.dart';
+import '../widgets/game_header.dart';
 
 
 class GameScreen extends StatefulWidget {
@@ -1039,7 +1040,7 @@ class _GameScreenState extends State<GameScreen> {
       return Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Row 1: Back, Undo, Settings, Timer, Export, Hint, Pause
+          // Row 1: Back, Undo, Settings, GameHeader, Export, Hint
           Padding(
             padding: const EdgeInsets.fromLTRB(4, 8, 4, 0),
             child: Row(
@@ -1073,16 +1074,14 @@ class _GameScreenState extends State<GameScreen> {
                   constraints: const BoxConstraints(),
                 ),
                 const Spacer(),
-                Text(
-                  _formatTime(_elapsedSeconds),
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF1A237E),
-                    fontFamily: 'monospace',
-                  ),
+                GameHeader(
+                  elapsedSeconds: _elapsedSeconds,
+                  difficultyLabel: _difficultyLabel(),
+                  isPaused: _isPaused,
+                  isAnimating: _isAnimating,
+                  onPauseToggle: _togglePause,
+                  onNewGame: _newGame,
                 ),
-                const Spacer(),
                 IconButton(
                   icon: const Icon(Icons.share_outlined, size: 20),
                   onPressed: (_isPaused || _isAnimating || _isCompleted)
@@ -1101,36 +1100,20 @@ class _GameScreenState extends State<GameScreen> {
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
                 ),
-                IconButton(
-                  icon: Icon(_isPaused ? Icons.play_arrow_rounded : Icons.pause_rounded, size: 20),
-                  onPressed: _isAnimating ? null : _togglePause,
-                  color: const Color(0xFF1A237E),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                ),
               ],
             ),
           ),
-          // Row 2: Title and difficulty
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'SUDOKU',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 4,
-                    color: Color(0xFF1A237E),
-                  ),
-                ),
-                Text(
-                  _difficultyLabel(),
-                  style: const TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-              ],
+          // Row 2: Title
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 4),
+            child: Text(
+              'SUDOKU',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 4,
+                color: Color(0xFF1A237E),
+              ),
             ),
           ),
         ],
@@ -1162,34 +1145,25 @@ class _GameScreenState extends State<GameScreen> {
                 : _showSettings,
             color: const Color(0xFF1A237E),
           ),
-          Expanded(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'SUDOKU',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 4,
-                    color: Color(0xFF1A237E),
-                  ),
-                ),
-                Text(
-                  _difficultyLabel(),
-                  style: const TextStyle(fontSize: 13, color: Colors.grey),
-                ),
-              ],
+          const Expanded(
+            child: Text(
+              'SUDOKU',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 4,
+                color: Color(0xFF1A237E),
+              ),
             ),
           ),
-          Text(
-            _formatTime(_elapsedSeconds),
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF1A237E),
-              fontFamily: 'monospace',
-            ),
+          GameHeader(
+            elapsedSeconds: _elapsedSeconds,
+            difficultyLabel: _difficultyLabel(),
+            isPaused: _isPaused,
+            isAnimating: _isAnimating,
+            onPauseToggle: _togglePause,
+            onNewGame: _newGame,
           ),
           IconButton(
             icon: const Icon(Icons.share_outlined),
@@ -1206,12 +1180,6 @@ class _GameScreenState extends State<GameScreen> {
                 : _showStrategyPicker,
             color: const Color(0xFF1A237E),
             iconSize: 26,
-          ),
-          IconButton(
-            icon: Icon(_isPaused ? Icons.play_arrow_rounded : Icons.pause_rounded),
-            onPressed: _isAnimating ? null : _togglePause,
-            color: const Color(0xFF1A237E),
-            iconSize: 28,
           ),
         ],
       ),
