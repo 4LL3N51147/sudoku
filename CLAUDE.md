@@ -66,6 +66,9 @@ flutter build web
 
 # Serve locally after building
 python3 -m http.server 8080 --directory build/web
+
+**Local dev server** — Port 8080 may already be in use from a previous session. Use
+  `curl http://localhost:8080` to verify before starting a new server.
 ```
 
 ## Testing
@@ -87,16 +90,19 @@ below for setup details.
 - **Pure logic in `lib/logic/`** — no Flutter imports; fully unit-testable.
 - **Widgets are stateless and prop-driven** — `SudokuBoard` has zero knowledge
   of game state; all rendering flows from parameters.
-- **Hint strategy elimination zones** — Debugging hints:
+- **Hint strategy elimination zones** — The elimination zone shows which specific constraint
+  (column, row, or box) actually eliminates each empty cell, NOT all constraints containing
+  the digit. For row hidden single: for each empty cell (r,c), check if column c OR the box
+  containing (r,c) has the digit - only mark those. Same logic applies for column/box modes.
   - `HintStep.eliminationBoxes` shows which 3x3 boxes contain the digit
-  - For row hidden single: boxes in that row
-  - For column hidden single: boxes in that column (not all boxes with digit)
-  - For box hidden single: rows/cols in that box
 - **Animation guards** — when adding any async animation or timed sequence,
   guard ALL input handlers (`_onCellTap`, `_onNumberInput`, `_onErase`) and
   interactive buttons against the animating flag, not just the trigger button.
 - **`_isAnimating` vs `_isPaused`** — these are separate flags; `_isPaused`
   shows the pause overlay; `_isAnimating` only stops the timer.
+- **Widget extraction refactoring** — When extracting widgets (e.g., GameBoardContainer,
+  HintController), verify the layout remains identical. The original used vertical Column
+  for both wide and narrow screens. Avoid changing to horizontal Row layouts.
 
 ## Git Workflow
 

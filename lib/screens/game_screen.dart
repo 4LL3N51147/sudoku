@@ -870,17 +870,6 @@ class _GameScreenState extends State<GameScreen> {
       children: [
         _buildHeader(isWide: true),
         const SizedBox(height: 12),
-        HintController(
-          strategyHighlight: _strategyHighlight,
-          hintMessage: _hintMessage,
-          hintPhase: _hintPhase,
-          isAnimating: _isAnimating,
-          isPaused: _isPaused,
-          isCompleted: _isCompleted,
-          settings: _settings,
-          onHintRequested: _showStrategyPicker,
-          onAdvanceHint: _advanceHintPhase,
-        ),
         Expanded(
           child: GameBoardContainer(
             board: _gameBoard.board,
@@ -894,6 +883,10 @@ class _GameScreenState extends State<GameScreen> {
             candidates: _candidates,
             matchingCandidates: _getSelectedCellCandidates(),
             disabledDigits: _completedDigits,
+            hintMessage: _hintMessage,
+            hintPhase: _hintPhase,
+            isCompleted: _isCompleted,
+            onNextPressed: _advanceHintPhase,
             onCellTap: _onCellTap,
             onNumberInput: _onNumberInput,
             onErase: _onErase,
@@ -909,17 +902,6 @@ class _GameScreenState extends State<GameScreen> {
       children: [
         _buildHeader(isWide: false),
         const SizedBox(height: 12),
-        HintController(
-          strategyHighlight: _strategyHighlight,
-          hintMessage: _hintMessage,
-          hintPhase: _hintPhase,
-          isAnimating: _isAnimating,
-          isPaused: _isPaused,
-          isCompleted: _isCompleted,
-          settings: _settings,
-          onHintRequested: _showStrategyPicker,
-          onAdvanceHint: _advanceHintPhase,
-        ),
         Expanded(
           child: GameBoardContainer(
             board: _gameBoard.board,
@@ -933,6 +915,10 @@ class _GameScreenState extends State<GameScreen> {
             candidates: _candidates,
             matchingCandidates: _getSelectedCellCandidates(),
             disabledDigits: _completedDigits,
+            hintMessage: _hintMessage,
+            hintPhase: _hintPhase,
+            isCompleted: _isCompleted,
+            onNextPressed: _advanceHintPhase,
             onCellTap: _onCellTap,
             onNumberInput: _onNumberInput,
             onErase: _onErase,
@@ -1073,6 +1059,7 @@ class _GameScreenState extends State<GameScreen> {
             onPauseToggle: _togglePause,
             onNewGame: _newGame,
           ),
+          const SizedBox(width: 8),
           IconButton(
             icon: const Icon(Icons.share_outlined),
             onPressed: (_isPaused || _isAnimating || _isCompleted)

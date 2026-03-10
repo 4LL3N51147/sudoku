@@ -247,7 +247,8 @@ class StrategySolver {
         final eliminationCols = <int>{};
         final eliminationBoxes = <int>{};
 
-        // For each empty cell in the unit (not the target), find which constraints block it
+        // For each empty cell in the unit (not the target), find which specific constraint eliminates it
+        // The elimination zone is the specific column, row, or box that contains the digit and blocks this cell
         for (final (r, c) in unitCells) {
           if ((r, c) == (tr, tc)) continue;
           if (board[r][c] != 0) continue;
@@ -255,61 +256,58 @@ class StrategySolver {
           // Add blockers (cells with the digit that block this cell)
           eliminators.addAll(_findBlockers(r, c, digit));
 
-          // Compute elimination zones - show where the digit exists in relevant constraints
-          // For row hidden single: show columns in THIS ROW and boxes containing the digit
-          // For column hidden single: show boxes containing the digit (not rows - that's wrong approach)
-          // For box hidden single: show rows and cols in THIS BOX
-          
+          // Compute elimination zones per empty cell - which specific constraint eliminates this cell
           if (unitType == UnitType.row) {
-            // Check columns in THIS ROW that have the digit
-            for (int cc = 0; cc < 9; cc++) {
-              if (cc != tc && board[tr][cc] == digit) {
-                eliminationCols.add(cc);
+            // For row hidden single: check if column c has the digit elsewhere
+            for (int rr = 0; rr < 9; rr++) {
+              if (rr != tr && board[rr][c] == digit) {
+                eliminationCols.add(c);
+                break;
               }
             }
-            // Check ALL boxes that contain the digit
-            for (int r = 0; r < 9; r++) {
-              for (int c = 0; c < 9; c++) {
-                if (board[r][c] == digit) {
-                  final b = (r ~/ 3) * 3 + (c ~/ 3);
-                  eliminationBoxes.add(b);
+            // Check if the box containing this cell (r, c) has the digit elsewhere in that box
+            final cellBox = (r ~/ 3) * 3 + (c ~/ 3);
+            for (int rr = (cellBox ~/ 3) * 3; rr < (cellBox ~/ 3) * 3 + 3; rr++) {
+              for (int cc = (cellBox % 3) * 3; cc < (cellBox % 3) * 3 + 3; cc++) {
+                if ((rr, cc) != (r, c) && board[rr][cc] == digit) {
+                  eliminationBoxes.add(cellBox);
+                  break;
                 }
               }
+              if (eliminationBoxes.contains(cellBox)) break;
             }
           } else if (unitType == UnitType.column) {
-            // For column hidden single: show boxes in THIS COLUMN that contain the digit
-            // Column 6 intersects boxes at box-col index 2 (boxes 2, 5, 8)
-            final targetBoxCol = tc ~/ 3;
-            for (int br = 0; br < 3; br++) {
-              final boxIndex = br * 3 + targetBoxCol;
-              // Check if this box contains the digit
-              for (int rr = br * 3; rr < br * 3 + 3; rr++) {
-                for (int cc = targetBoxCol * 3; cc < targetBoxCol * 3 + 3; cc++) {
-                  if (board[rr][cc] == digit) {
-                    eliminationBoxes.add(boxIndex);
-                    break;
-                  }
-                }
-                if (eliminationBoxes.contains(boxIndex)) break;
+            // For column hidden single: check if row r has the digit elsewhere
+            for (int cc = 0; cc < 9; cc++) {
+              if (cc != tc && board[r][cc] == digit) {
+                eliminationRows.add(r);
+                break;
               }
             }
-            // Also show rows in this column that have the digit
-            for (int rr = 0; rr < 9; rr++) {
-              if (board[rr][tc] == digit) {
-                eliminationRows.add(rr);
+            // Check if the box containing this cell (r, c) has the digit elsewhere in that box
+            final cellBox = (r ~/ 3) * 3 + (c ~/ 3);
+            for (int rr = (cellBox ~/ 3) * 3; rr < (cellBox ~/ 3) * 3 + 3; rr++) {
+              for (int cc = (cellBox % 3) * 3; cc < (cellBox % 3) * 3 + 3; cc++) {
+                if ((rr, cc) != (r, c) && board[rr][cc] == digit) {
+                  eliminationBoxes.add(cellBox);
+                  break;
+                }
               }
+              if (eliminationBoxes.contains(cellBox)) break;
             }
           } else if (unitType == UnitType.box) {
-            // For box hidden single: show rows and cols in THIS BOX that have the digit
-            final targetBox = (tr ~/ 3) * 3 + (tc ~/ 3);
-            for (int rr = (targetBox ~/ 3) * 3; rr < (targetBox ~/ 3) * 3 + 3; rr++) {
-              for (int cc = (targetBox % 3) * 3; cc < (targetBox % 3) * 3 + 3; cc++) {
-                if (rr != tr && board[rr][cc] == digit) {
-                  eliminationRows.add(rr);
-                }
-                if (cc != tc && board[rr][cc] == digit) {
-                  eliminationCols.add(cc);
-                }
+            // For box hidden single: check if row r has the digit elsewhere
+            for (int cc = 0; cc < 9; cc++) {
+              if (board[r][cc] == digit && cc != c) {
+                eliminationRows.add(r);
+                break;
+              }
+            }
+            // Check if column c in this box has the digit elsewhere
+            for (int rr = 0; rr < 9; rr++) {
+              if (board[rr][c] == digit && rr != r) {
+                eliminationCols.add(c);
+                break;
               }
             }
           }
