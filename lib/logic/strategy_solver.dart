@@ -401,21 +401,21 @@ class StrategySolver {
   }
 
   Set<(int, int)> _findBlockers(int row, int col, int digit) {
-    final blockers = <(int, int)>{};
-    for (int c = 0; c < 9; c++) {
-      if (board[row][c] == digit) blockers.add((row, c));
-    }
-    for (int r = 0; r < 9; r++) {
-      if (board[r][col] == digit) blockers.add((r, col));
-    }
+    // Priority: box > row > column - each cell should have only one blocker
     final br = (row ~/ 3) * 3;
     final bc = (col ~/ 3) * 3;
     for (int r = br; r < br + 3; r++) {
       for (int c = bc; c < bc + 3; c++) {
-        if (board[r][c] == digit) blockers.add((r, c));
+        if (board[r][c] == digit) return {(r, c)};
       }
     }
-    return blockers;
+    for (int c = 0; c < 9; c++) {
+      if (c != col && board[row][c] == digit) return {(row, c)};
+    }
+    for (int r = 0; r < 9; r++) {
+      if (r != row && board[r][col] == digit) return {(r, col)};
+    }
+    return {};
   }
 
   /// Find naked pairs in the board
