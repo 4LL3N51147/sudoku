@@ -3,6 +3,7 @@ import '../logic/strategy_solver.dart';
 import 'sudoku_board.dart';
 import 'number_pad.dart';
 import 'hint_banner.dart';
+import 'ad_banner.dart';
 
 /// Container widget that holds the SudokuBoard and NumberPad,
 /// handling wide vs narrow layout based on screen width.
@@ -119,7 +120,10 @@ class GameBoardContainer extends StatelessWidget {
             disabledDigits: disabledDigits,
           ),
         ),
-        const SizedBox(height: 12),
+        // Ad banner under NumberPad
+        const SizedBox(height: 8),
+        const AdBanner(),
+        const SizedBox(height: 8),
       ],
     );
   }
