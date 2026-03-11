@@ -5,3 +5,5 @@ build
 .playwright-mcp
 */*/node_modules
 test/integration/test-results
+.flutter-plugins-dependencies
+pubspec.lock

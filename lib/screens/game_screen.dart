@@ -934,7 +934,7 @@ class _GameScreenState extends State<GameScreen> {
       return Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Row 1: Back, Undo, Settings, GameHeader, Export, Hint
+          // Row 1: Back, Undo, Settings, New Game, Timer/Pause, Export, Hint
           Padding(
             padding: const EdgeInsets.fromLTRB(4, 8, 4, 0),
             child: Row(
@@ -967,14 +967,24 @@ class _GameScreenState extends State<GameScreen> {
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
                 ),
+                // New Game button
+                IconButton(
+                  icon: const Icon(Icons.refresh, size: 20),
+                  onPressed: (_isPaused || _isAnimating || _isCompleted)
+                      ? null
+                      : _newGame,
+                  color: const Color(0xFF1A237E),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  tooltip: 'New Game',
+                ),
                 const Spacer(),
+                // Timer and Pause
                 GameHeader(
                   elapsedSeconds: _elapsedSeconds,
-                  difficultyLabel: _difficultyLabel(),
                   isPaused: _isPaused,
                   isAnimating: _isAnimating,
                   onPauseToggle: _togglePause,
-                  onNewGame: _newGame,
                 ),
                 IconButton(
                   icon: const Icon(Icons.share_outlined, size: 20),
@@ -997,12 +1007,12 @@ class _GameScreenState extends State<GameScreen> {
               ],
             ),
           ),
-          // Row 2: Title
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 4),
+          // Row 2: Title with Difficulty
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
             child: Text(
-              'SUDOKU',
-              style: TextStyle(
+              'SUDOKU - ${_difficultyLabel().toUpperCase()}',
+              style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 4,
@@ -1039,6 +1049,15 @@ class _GameScreenState extends State<GameScreen> {
                 : _showSettings,
             color: const Color(0xFF1A237E),
           ),
+          // New Game button
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: (_isPaused || _isAnimating || _isCompleted)
+                ? null
+                : _newGame,
+            color: const Color(0xFF1A237E),
+            tooltip: 'New Game',
+          ),
           const Expanded(
             child: Text(
               'SUDOKU',
@@ -1051,15 +1070,23 @@ class _GameScreenState extends State<GameScreen> {
               ),
             ),
           ),
+          // Add difficulty label after title
+          Text(
+            '- ${_difficultyLabel().toUpperCase()}',
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: Colors.grey,
+            ),
+          ),
+          const SizedBox(width: 16),
+          // Timer, Pause, Export, Hint - all on the right side
           GameHeader(
             elapsedSeconds: _elapsedSeconds,
-            difficultyLabel: _difficultyLabel(),
             isPaused: _isPaused,
             isAnimating: _isAnimating,
             onPauseToggle: _togglePause,
-            onNewGame: _newGame,
           ),
-          const SizedBox(width: 8),
           IconButton(
             icon: const Icon(Icons.share_outlined),
             onPressed: (_isPaused || _isAnimating || _isCompleted)
