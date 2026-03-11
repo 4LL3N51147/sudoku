@@ -181,23 +181,6 @@ class StrategySolver {
 
   StrategySolver(this.board) : candidates = computeCandidates(board);
 
-  StrategyResult? findNextStrategy() {
-    var result = findHiddenSingle();
-    if (result != null) return result;
-    result = findNakedPair();
-    if (result != null) return result;
-    result = findHiddenPair();
-    if (result != null) return result;
-    result = findNakedTriple();
-    if (result != null) return result;
-    result = findHiddenTriple();
-    if (result != null) return result;
-    result = findNakedQuad();
-    if (result != null) return result;
-    result = findHiddenQuad();
-    if (result != null) return result;
-    return null;
-  }
 
   StrategyResult? findHiddenSingle() {
     // Rows
