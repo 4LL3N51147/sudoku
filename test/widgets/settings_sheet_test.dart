@@ -47,11 +47,9 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      // Verify all sliders are present
-      expect(find.text('Scan'), findsOneWidget);
-      expect(find.text('Elimination'), findsOneWidget);
-      expect(find.text('Target'), findsOneWidget);
+      // Verify all switch controls are present
       expect(find.text('Skip Animation'), findsOneWidget);
+      expect(find.text('Show Advanced Hints'), findsOneWidget);
       expect(find.text('Settings'), findsOneWidget);
     });
   });

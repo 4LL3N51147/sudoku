@@ -6,6 +6,8 @@ import 'hint_banner.dart';
 /// Controller widget for hint functionality.
 /// Displays the hint banner when active and provides the hint button.
 class HintController extends StatelessWidget {
+  static const _hintColor = Color(0xFF1A237E);
+
   final StrategyHighlight? strategyHighlight;
   final String? hintMessage;
   final int? hintPhase;
@@ -52,8 +54,8 @@ class HintController extends StatelessWidget {
           icon: const Icon(Icons.lightbulb_outline),
           label: const Text('Hint'),
           style: OutlinedButton.styleFrom(
-            foregroundColor: const Color(0xFF1A237E),
-            side: const BorderSide(color: Color(0xFF1A237E)),
+            foregroundColor: _hintColor,
+            side: BorderSide(color: _hintColor),
           ),
         ),
       ],
@@ -64,7 +66,58 @@ class HintController extends StatelessWidget {
   static void showStrategyPicker({
     required BuildContext context,
     required void Function(StrategyType) onStrategySelected,
+    bool showAdvancedHints = false,
   }) {
+    // Basic strategies: Hidden Single, Naked Pair, Hidden Pair
+    final basicStrategies = [
+      _StrategyItem(
+        'Hidden Single',
+        'Find a digit that can only go in one cell within a row, column, or box',
+        StrategyType.hiddenSingle,
+      ),
+      _StrategyItem(
+        'Naked Pair',
+        'Find two cells in a unit with the same two candidates',
+        StrategyType.nakedPair,
+      ),
+      _StrategyItem(
+        'Hidden Pair',
+        'Find two cells in a unit that are the only ones for two digits',
+        StrategyType.hiddenPair,
+      ),
+    ];
+
+    // Advanced strategies: Naked Triple, Hidden Triple, Naked Quad, Hidden Quad
+    final advancedStrategies = [
+      _StrategyItem(
+        'Naked Triple',
+        'Find three cells in a unit with the same three candidates',
+        StrategyType.nakedTriple,
+      ),
+      _StrategyItem(
+        'Hidden Triple',
+        'Find three cells in a unit that are the only ones for three digits',
+        StrategyType.hiddenTriple,
+      ),
+      _StrategyItem(
+        'Naked Quad',
+        'Find four cells in a unit with the same four candidates',
+        StrategyType.nakedQuad,
+      ),
+      _StrategyItem(
+        'Hidden Quad',
+        'Find four cells in a unit that are the only ones for four digits',
+        StrategyType.hiddenQuad,
+      ),
+    ];
+
+    final strategies = [
+      ...basicStrategies,
+      if (showAdvancedHints) ...advancedStrategies,
+    ];
+
+    final title = showAdvancedHints ? 'Choose a Strategy' : 'Choose a Strategy (Basic)';
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -80,56 +133,32 @@ class HintController extends StatelessWidget {
           controller: scrollController,
           padding: const EdgeInsets.symmetric(vertical: 16),
           children: [
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Text(
-                'Choose a Strategy',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                title,
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
             ),
+            if (!showAdvancedHints)
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: Text(
+                  "Enable 'Show Advanced Hints' in settings for more strategies",
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ),
             const Divider(),
-            _strategyTile(
-              context,
-              'Hidden Single',
-              'Find a digit that can only go in one cell within a row, column, or box',
-              () => onStrategySelected(StrategyType.hiddenSingle),
-            ),
-            _strategyTile(
-              context,
-              'Naked Pair',
-              'Find two cells in a unit with the same two candidates',
-              () => onStrategySelected(StrategyType.nakedPair),
-            ),
-            _strategyTile(
-              context,
-              'Hidden Pair',
-              'Find two cells in a unit that are the only ones for two digits',
-              () => onStrategySelected(StrategyType.hiddenPair),
-            ),
-            _strategyTile(
-              context,
-              'Naked Triple',
-              'Find three cells in a unit with the same three candidates',
-              () => onStrategySelected(StrategyType.nakedTriple),
-            ),
-            _strategyTile(
-              context,
-              'Hidden Triple',
-              'Find three cells in a unit that are the only ones for three digits',
-              () => onStrategySelected(StrategyType.hiddenTriple),
-            ),
-            _strategyTile(
-              context,
-              'Naked Quad',
-              'Find four cells in a unit with the same four candidates',
-              () => onStrategySelected(StrategyType.nakedQuad),
-            ),
-            _strategyTile(
-              context,
-              'Hidden Quad',
-              'Find four cells in a unit that are the only ones for four digits',
-              () => onStrategySelected(StrategyType.hiddenQuad),
-            ),
+            ...strategies.map((item) => _strategyTile(
+                  context,
+                  item.title,
+                  item.subtitle,
+                  () => onStrategySelected(item.strategyType),
+                )),
           ],
         ),
       ),
@@ -143,7 +172,7 @@ class HintController extends StatelessWidget {
     VoidCallback onTap,
   ) {
     return ListTile(
-      leading: const Icon(Icons.lightbulb_outline, color: Color(0xFF1A237E)),
+      leading: Icon(Icons.lightbulb_outline, color: _hintColor),
       title: Text(title),
       subtitle: Text(subtitle),
       onTap: () {
@@ -152,4 +181,13 @@ class HintController extends StatelessWidget {
       },
     );
   }
+}
+
+/// Data class for strategy items.
+class _StrategyItem {
+  final String title;
+  final String subtitle;
+  final StrategyType strategyType;
+
+  const _StrategyItem(this.title, this.subtitle, this.strategyType);
 }

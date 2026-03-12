@@ -17,18 +17,14 @@ class SettingsSheet extends StatefulWidget {
 }
 
 class _SettingsSheetState extends State<SettingsSheet> {
-  late int _scanMs;
-  late int _eliminationMs;
-  late int _targetMs;
   late bool _skipAnimation;
+  late bool _showAdvancedHints;
 
   @override
   void initState() {
     super.initState();
-    _scanMs = widget.settings.hintScanMs;
-    _eliminationMs = widget.settings.hintEliminationMs;
-    _targetMs = widget.settings.hintTargetMs;
     _skipAnimation = widget.settings.skipHintAnimation;
+    _showAdvancedHints = widget.settings.showAdvancedHints;
   }
 
   @override
@@ -36,62 +32,23 @@ class _SettingsSheetState extends State<SettingsSheet> {
     super.didUpdateWidget(oldWidget);
     if (widget.settings != oldWidget.settings) {
       setState(() {
-        _scanMs = widget.settings.hintScanMs;
-        _eliminationMs = widget.settings.hintEliminationMs;
-        _targetMs = widget.settings.hintTargetMs;
         _skipAnimation = widget.settings.skipHintAnimation;
+        _showAdvancedHints = widget.settings.showAdvancedHints;
       });
     }
   }
 
-  void _update({int? scan, int? elimination, int? target, bool? skipAnimation}) {
-    final newScan = scan ?? _scanMs;
-    final newElimination = elimination ?? _eliminationMs;
-    final newTarget = target ?? _targetMs;
+  void _update({bool? skipAnimation, bool? showAdvancedHints}) {
     final newSkipAnimation = skipAnimation ?? _skipAnimation;
+    final newShowAdvancedHints = showAdvancedHints ?? _showAdvancedHints;
     setState(() {
-      _scanMs = newScan;
-      _eliminationMs = newElimination;
-      _targetMs = newTarget;
       _skipAnimation = newSkipAnimation;
+      _showAdvancedHints = newShowAdvancedHints;
     });
     widget.onChanged(AppSettings(
-      hintScanMs: newScan,
-      hintEliminationMs: newElimination,
-      hintTargetMs: newTarget,
       skipHintAnimation: newSkipAnimation,
+      showAdvancedHints: newShowAdvancedHints,
     ));
-  }
-
-  String _label(int ms) => '${(ms / 1000).toStringAsFixed(1)}s';
-
-  Widget _slider({
-    required String title,
-    required int value,
-    required ValueChanged<int> onChanged,
-  }) {
-    return Row(
-      children: [
-        SizedBox(
-          width: 120,
-          child: Text(title, style: const TextStyle(fontSize: 14)),
-        ),
-        Expanded(
-          child: Slider(
-            value: value.toDouble(),
-            min: 500,
-            max: 4000,
-            divisions: 7,
-            onChanged: (v) => onChanged(v.round()),
-            activeColor: const Color(0xFF1A237E),
-          ),
-        ),
-        SizedBox(
-          width: 36,
-          child: Text(_label(value), style: const TextStyle(fontSize: 13)),
-        ),
-      ],
-    );
   }
 
   @override
@@ -109,7 +66,7 @@ class _SettingsSheetState extends State<SettingsSheet> {
             ),
             const SizedBox(height: 16),
             const Text(
-              'HINT ANIMATION',
+              'HINTS',
               style: TextStyle(
                 fontSize: 11,
                 color: Colors.grey,
@@ -118,21 +75,6 @@ class _SettingsSheetState extends State<SettingsSheet> {
               ),
             ),
             const SizedBox(height: 8),
-            _slider(
-              title: 'Scan',
-              value: _scanMs,
-              onChanged: (v) => _update(scan: v),
-            ),
-            _slider(
-              title: 'Elimination',
-              value: _eliminationMs,
-              onChanged: (v) => _update(elimination: v),
-            ),
-            _slider(
-              title: 'Target',
-              value: _targetMs,
-              onChanged: (v) => _update(target: v),
-            ),
             Row(
               children: [
                 const Expanded(
@@ -141,6 +83,24 @@ class _SettingsSheetState extends State<SettingsSheet> {
                 Switch(
                   value: _skipAnimation,
                   onChanged: (v) => _update(skipAnimation: v),
+                  activeTrackColor: const Color(0xFF1A237E).withValues(alpha: 0.5),
+                  thumbColor: WidgetStateProperty.resolveWith((states) {
+                    if (states.contains(WidgetState.selected)) {
+                      return const Color(0xFF1A237E);
+                    }
+                    return null;
+                  }),
+                ),
+              ],
+            ),
+            Row(
+              children: [
+                const Expanded(
+                  child: Text('Show Advanced Hints', style: TextStyle(fontSize: 14)),
+                ),
+                Switch(
+                  value: _showAdvancedHints,
+                  onChanged: (v) => _update(showAdvancedHints: v),
                   activeTrackColor: const Color(0xFF1A237E).withValues(alpha: 0.5),
                   thumbColor: WidgetStateProperty.resolveWith((states) {
                     if (states.contains(WidgetState.selected)) {
