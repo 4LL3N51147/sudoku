@@ -533,16 +533,6 @@ class StrategySolver {
               eliminationCandidates: eliminationCandidates,
               unitType: unitType,
             ),
-            if (resultCells.isNotEmpty)
-              HintStep(
-                phase: StrategyPhase.target,
-                message: 'Now you can fill ${resultCells.length} cell${resultCells.length > 1 ? 's' : ''} with single candidates!',
-                unitCells: unitCells,
-                patternCells: pairCells,
-                resultCells: resultCells,
-                patternDigits: pairDigits,
-                unitType: unitType,
-              ),
           ];
 
           return StrategyResult(
