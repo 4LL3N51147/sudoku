@@ -610,8 +610,12 @@ class StrategySolver {
 
         // Both digits appear in exactly the same 2 cells
         if (cells1.length == 2 && cells2.length == 2) {
-          final pairCells = cells1.toSet();
-          if (pairCells.length == 2 && cells2.toSet().length == 2) {
+          final cells1Set = cells1.toSet();
+          final cells2Set = cells2.toSet();
+          // Check that both digits are in the SAME 2 cells
+          if (cells1Set.length == 2 && cells2Set.length == 2 && 
+              cells1Set.containsAll(cells2Set)) {
+            final pairCells = cells1Set;
             // Found hidden pair - eliminate OTHER digits from these cells (not the pair digits)
             // eliminationCells = the pair cells themselves
             // eliminationCandidates = other candidates to remove from those cells
