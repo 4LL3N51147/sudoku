@@ -279,7 +279,7 @@ class SudokuBoard extends StatelessWidget {
                   Text(
                     '$digit',
                     style: TextStyle(
-                      fontSize: 9,
+                      fontSize: 12,
                       color: Colors.grey.shade400,
                     ),
                   ),
