@@ -214,7 +214,12 @@ class _GameScreenState extends State<GameScreen> {
   void _fillCell(int row, int col, int digit) {
     // Use GameBoard to set cell (includes undo stack and error update)
     _gameBoard.setCell(row, col, digit);
-    _candidates = computeCandidates(_gameBoard.board);
+    // Update candidates incrementally - only if candidates exist
+    if (_candidates.isEmpty) {
+      _candidates = computeCandidates(_gameBoard.board);
+    } else {
+      _candidates = _updateCandidatesAfterFill(_candidates, row, col, digit);
+    }
 
     // Track completed digits
     _updateCompletedDigits(digit);
@@ -251,6 +256,36 @@ class _GameScreenState extends State<GameScreen> {
 
   void _updateErrors() {
     _gameBoard.updateErrors();
+  }
+
+  /// Update candidates incrementally after filling a cell.
+  /// Removes the filled digit from related cells while preserving manual eliminations.
+  Map<(int, int), Set<int>> _updateCandidatesAfterFill(
+    Map<(int, int), Set<int>> candidates,
+    int filledRow,
+    int filledCol,
+    int digit,
+  ) {
+    final updated = <(int, int), Set<int>>{};
+    for (final entry in candidates.entries) {
+      final cell = entry.key;
+      final cellRow = cell.$1;
+      final cellCol = cell.$2;
+      if (cellRow == filledRow && cellCol == filledCol) continue;
+      final sharesRow = cellRow == filledRow;
+      final sharesCol = cellCol == filledCol;
+      final sharesBox = ((cellRow ~/ 3) == (filledRow ~/ 3)) &&
+          ((cellCol ~/ 3) == (filledCol ~/ 3));
+      if (sharesRow || sharesCol || sharesBox) {
+        final newCandidates = Set<int>.from(entry.value)..remove(digit);
+        if (newCandidates.isNotEmpty) {
+          updated[cell] = newCandidates;
+        }
+      } else {
+        updated[cell] = entry.value;
+      }
+    }
+    return updated;
   }
 
   Set<int> _calculateCompletedDigits() {
@@ -548,8 +583,8 @@ class _GameScreenState extends State<GameScreen> {
             // Fill the cell automatically for Hidden Single
             _gameBoard.setCell(row, col, result.patternDigits.first);
             _updateErrors();
-            // Clear candidates - pencil marks should not be shown after hidden single
-            _candidates = {};
+            // Update candidates incrementally - preserve existing pencil marks
+            _candidates = _updateCandidatesAfterFill(_candidates, row, col, result.patternDigits.first);
           }
           // Apply elimination candidates to _candidates
           if (result.eliminationCandidates.isNotEmpty) {
@@ -603,7 +638,8 @@ class _GameScreenState extends State<GameScreen> {
         if (shouldAutoFill) {
           _gameBoard.setCell(row, col, result.patternDigits.first);
           _updateErrors();
-          _candidates = {};
+          // Update candidates incrementally - preserve existing pencil marks
+          _candidates = _updateCandidatesAfterFill(_candidates, row, col, result.patternDigits.first);
         }
         // Apply elimination candidates
         if (result.eliminationCandidates.isNotEmpty) {
@@ -661,11 +697,18 @@ class _GameScreenState extends State<GameScreen> {
     // For non-HiddenSingle strategies, compute candidates first
     if (type != StrategyType.hiddenSingle) {
       setState(() {
-        _candidates = computeCandidates(_gameBoard.board);
+        // Only compute candidates if empty - preserves manual eliminations
+        if (_candidates.isEmpty) {
+          _candidates = computeCandidates(_gameBoard.board);
+        }
       });
     }
 
-    final solver = StrategySolver(_gameBoard.board);
+    // Pass existing candidates if available to preserve manual eliminations
+    final solver = StrategySolver(
+      _gameBoard.board,
+      _candidates.isNotEmpty ? _candidates : null,
+    );
     final result = switch (type) {
       StrategyType.hiddenSingle => solver.findHiddenSingle(),
       StrategyType.nakedPair => solver.findNakedPair(),

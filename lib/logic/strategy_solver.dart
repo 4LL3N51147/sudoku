@@ -179,7 +179,10 @@ class StrategySolver {
   final List<List<int>> board;
   final Map<(int, int), Set<int>> candidates;
 
-  StrategySolver(this.board) : candidates = computeCandidates(board);
+  /// Create a solver. If candidates are provided, use them instead of computing fresh.
+  /// This preserves manual eliminations from hints.
+  StrategySolver(this.board, [Map<(int, int), Set<int>>? existingCandidates])
+      : candidates = existingCandidates ?? computeCandidates(board);
 
 
   StrategyResult? findHiddenSingle() {
@@ -533,16 +536,6 @@ class StrategySolver {
               eliminationCandidates: eliminationCandidates,
               unitType: unitType,
             ),
-            if (resultCells.isNotEmpty)
-              HintStep(
-                phase: StrategyPhase.target,
-                message: 'Now you can fill ${resultCells.length} cell${resultCells.length > 1 ? 's' : ''} with single candidates!',
-                unitCells: unitCells,
-                patternCells: pairCells,
-                resultCells: resultCells,
-                patternDigits: pairDigits,
-                unitType: unitType,
-              ),
           ];
 
           return StrategyResult(
@@ -617,8 +610,12 @@ class StrategySolver {
 
         // Both digits appear in exactly the same 2 cells
         if (cells1.length == 2 && cells2.length == 2) {
-          final pairCells = cells1.toSet();
-          if (pairCells.length == 2 && cells2.toSet().length == 2) {
+          final cells1Set = cells1.toSet();
+          final cells2Set = cells2.toSet();
+          // Check that both digits are in the SAME 2 cells
+          if (cells1Set.length == 2 && cells2Set.length == 2 && 
+              cells1Set.containsAll(cells2Set)) {
+            final pairCells = cells1Set;
             // Found hidden pair - eliminate OTHER digits from these cells (not the pair digits)
             // eliminationCells = the pair cells themselves
             // eliminationCandidates = other candidates to remove from those cells
