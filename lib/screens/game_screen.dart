@@ -690,6 +690,7 @@ class _GameScreenState extends State<GameScreen> {
     HintController.showStrategyPicker(
       context: context,
       onStrategySelected: _runStrategyHint,
+      showAdvancedHints: _settings.showAdvancedHints,
     );
   }
 
