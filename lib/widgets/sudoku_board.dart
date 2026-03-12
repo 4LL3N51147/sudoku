@@ -246,7 +246,8 @@ class SudokuBoard extends StatelessWidget {
         final hasCandidate = cellCandidates.contains(digit);
         final isEliminated = _isEliminated(row, col, digit);
 
-        final isMatching = matchingCandidates?.contains(digit) ?? false;
+        // Only highlight if BOTH: the cell has this candidate AND it's in the selected cell's candidates
+        final isMatching = hasCandidate && (matchingCandidates?.contains(digit) ?? false);
 
         return Center(
           child: isEliminated

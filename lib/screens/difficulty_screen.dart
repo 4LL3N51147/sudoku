@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:file_selector/file_selector.dart';
 import '../logic/game_state.dart';
 import '../logic/sudoku_generator.dart';
 import 'game_screen.dart';
@@ -20,6 +22,65 @@ class _DifficultyScreenState extends State<DifficultyScreen> {
   }
 
   void _handleImport() async {
+    // Show bottom sheet with options
+    final result = await showModalBottomSheet<String>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.file_upload_outlined),
+              title: const Text('Select File'),
+              subtitle: const Text('Choose a .sudoku file'),
+              onTap: () => Navigator.pop(ctx, 'file'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.paste_outlined),
+              title: const Text('Paste JSON'),
+              subtitle: const Text('Paste game JSON text'),
+              onTap: () => Navigator.pop(ctx, 'paste'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (result == null || !mounted) return;
+
+    if (result == 'file') {
+      await _importFromFile();
+    } else {
+      await _importFromPaste();
+    }
+  }
+
+  Future<void> _importFromFile() async {
+    try {
+      const typeGroup = XTypeGroup(
+        label: 'Sudoku files',
+        extensions: ['sudoku'],
+        mimeTypes: ['application/json'],
+      );
+
+      final file = await openFile(acceptedTypeGroups: [typeGroup]);
+
+      if (file == null || !mounted) return;
+
+      final bytes = await file.readAsBytes();
+      final jsonString = utf8.decode(bytes);
+
+      _importGame(jsonString);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to read file: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _importFromPaste() async {
     _importController.clear();
     final result = await showDialog<String>(
       context: context,
