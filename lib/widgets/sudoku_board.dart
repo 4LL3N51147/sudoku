@@ -237,54 +237,68 @@ class SudokuBoard extends StatelessWidget {
       return null;
     }
 
-    return GridView.count(
-      crossAxisCount: 3,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      children: List.generate(9, (index) {
-        final digit = index + 1;
-        final hasCandidate = cellCandidates.contains(digit);
-        final isEliminated = _isEliminated(row, col, digit);
+    // Use Column+Row instead of GridView to avoid scrollbar issues
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(mainAxisSize: MainAxisSize.min, children: [
+          _buildCandidateDigit(0, row, col, cellCandidates),
+          _buildCandidateDigit(1, row, col, cellCandidates),
+          _buildCandidateDigit(2, row, col, cellCandidates),
+        ]),
+        Row(mainAxisSize: MainAxisSize.min, children: [
+          _buildCandidateDigit(3, row, col, cellCandidates),
+          _buildCandidateDigit(4, row, col, cellCandidates),
+          _buildCandidateDigit(5, row, col, cellCandidates),
+        ]),
+        Row(mainAxisSize: MainAxisSize.min, children: [
+          _buildCandidateDigit(6, row, col, cellCandidates),
+          _buildCandidateDigit(7, row, col, cellCandidates),
+          _buildCandidateDigit(8, row, col, cellCandidates),
+        ]),
+      ],
+    );
+  }
 
-        // Only highlight if BOTH: the cell has this candidate AND it's in the selected cell's candidates
-        final isMatching = hasCandidate && (matchingCandidates?.contains(digit) ?? false);
+  Widget _buildCandidateDigit(int index, int row, int col, Set<int>? cellCandidates) {
+    final digit = index + 1;
+    final hasCandidate = cellCandidates?.contains(digit) ?? false;
+    final isEliminated = _isEliminated(row, col, digit);
 
-        return Center(
-          child: isEliminated
-              ? Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Text(
-                      '$digit',
-                      style: TextStyle(
-                        fontSize: 9,
-                        color: Colors.grey.shade400,
-                      ),
-                    ),
-                    Container(
-                      width: 8,
-                      height: 1,
-                      color: Colors.red.shade400,
-                    ),
-                  ],
-                )
-              : Container(
-                  decoration: BoxDecoration(
-                    color: isMatching ? const Color(0xFFBBDEFB) : null,  // blue-100
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                  padding: const EdgeInsets.all(1),
-                  child: Text(
+    // Only highlight if BOTH: the cell has this candidate AND it's in the selected cell's candidates
+    final isMatching = hasCandidate && (matchingCandidates?.contains(digit) ?? false);
+
+    return SizedBox(
+      width: 12,
+      height: 12,
+      child: Center(
+        child: isEliminated
+            ? Stack(
+                alignment: Alignment.center,
+                children: [
+                  Text(
                     '$digit',
                     style: TextStyle(
                       fontSize: 9,
-                      color: hasCandidate ? Colors.blue.shade700 : Colors.transparent,
-                      fontWeight: isMatching ? FontWeight.bold : FontWeight.normal,
+                      color: Colors.grey.shade400,
                     ),
                   ),
+                  Container(
+                    width: 8,
+                    height: 1,
+                    color: Colors.red.shade400,
+                  ),
+                ],
+              )
+            : Text(
+                '$digit',
+                style: TextStyle(
+                  fontSize: 9,
+                  color: hasCandidate ? Colors.blue.shade700 : Colors.transparent,
+                  fontWeight: isMatching ? FontWeight.bold : FontWeight.normal,
                 ),
-        );
-      }),
+              ),
+      ),
     );
   }
 
