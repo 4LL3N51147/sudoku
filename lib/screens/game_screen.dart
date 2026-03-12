@@ -583,8 +583,8 @@ class _GameScreenState extends State<GameScreen> {
             // Fill the cell automatically for Hidden Single
             _gameBoard.setCell(row, col, result.patternDigits.first);
             _updateErrors();
-            // Clear candidates - pencil marks should not be shown after hidden single
-            _candidates = {};
+            // Update candidates incrementally - preserve existing pencil marks
+            _candidates = _updateCandidatesAfterFill(_candidates, row, col, result.patternDigits.first);
           }
           // Apply elimination candidates to _candidates
           if (result.eliminationCandidates.isNotEmpty) {
@@ -638,7 +638,8 @@ class _GameScreenState extends State<GameScreen> {
         if (shouldAutoFill) {
           _gameBoard.setCell(row, col, result.patternDigits.first);
           _updateErrors();
-          _candidates = {};
+          // Update candidates incrementally - preserve existing pencil marks
+          _candidates = _updateCandidatesAfterFill(_candidates, row, col, result.patternDigits.first);
         }
         // Apply elimination candidates
         if (result.eliminationCandidates.isNotEmpty) {
