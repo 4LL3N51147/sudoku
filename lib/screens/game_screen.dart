@@ -704,7 +704,11 @@ class _GameScreenState extends State<GameScreen> {
       });
     }
 
-    final solver = StrategySolver(_gameBoard.board);
+    // Pass existing candidates if available to preserve manual eliminations
+    final solver = StrategySolver(
+      _gameBoard.board,
+      _candidates.isNotEmpty ? _candidates : null,
+    );
     final result = switch (type) {
       StrategyType.hiddenSingle => solver.findHiddenSingle(),
       StrategyType.nakedPair => solver.findNakedPair(),

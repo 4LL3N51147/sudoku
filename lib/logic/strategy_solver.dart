@@ -179,7 +179,10 @@ class StrategySolver {
   final List<List<int>> board;
   final Map<(int, int), Set<int>> candidates;
 
-  StrategySolver(this.board) : candidates = computeCandidates(board);
+  /// Create a solver. If candidates are provided, use them instead of computing fresh.
+  /// This preserves manual eliminations from hints.
+  StrategySolver(this.board, [Map<(int, int), Set<int>>? existingCandidates])
+      : candidates = existingCandidates ?? computeCandidates(board);
 
 
   StrategyResult? findHiddenSingle() {
