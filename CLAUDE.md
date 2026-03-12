@@ -80,11 +80,6 @@ Widget tests are in `test/widget_test.dart`.
 `flutter analyze` runs code quality checks (7 info-level issues are expected: deprecated
 `dart:html` usage for keyboard handling and minor style suggestions).
 
-**All changes must include Playwright integration tests**, regardless of change size.
-Use the Playwright MCP tools (browser_navigate, browser_snapshot, browser_click, etc.)
-to verify the web app works correctly in a real browser. See the Playwright section
-below for setup details.
-
 ## Code Conventions
 
 - **Pure logic in `lib/logic/`** — no Flutter imports; fully unit-testable.
