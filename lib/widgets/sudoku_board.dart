@@ -220,7 +220,7 @@ class SudokuBoard extends StatelessWidget {
               : Text(
                   '$value',
                   style: TextStyle(
-                    fontSize: 20,
+                    fontSize: 30,
                     fontWeight:
                         given ? FontWeight.bold : FontWeight.w500,
                     color: textColor,
@@ -269,8 +269,8 @@ class SudokuBoard extends StatelessWidget {
     final isMatching = hasCandidate && (matchingCandidates?.contains(digit) ?? false);
 
     return SizedBox(
-      width: 12,
-      height: 12,
+      width: 25,
+      height: 25,
       child: Center(
         child: isEliminated
             ? Stack(
@@ -279,7 +279,7 @@ class SudokuBoard extends StatelessWidget {
                   Text(
                     '$digit',
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: 15,
                       color: Colors.grey.shade400,
                     ),
                   ),
@@ -293,7 +293,7 @@ class SudokuBoard extends StatelessWidget {
             : Text(
                 '$digit',
                 style: TextStyle(
-                  fontSize: 9,
+                  fontSize: 15,
                   color: hasCandidate ? Colors.blue.shade700 : Colors.transparent,
                   fontWeight: isMatching ? FontWeight.bold : FontWeight.normal,
                 ),
