@@ -3,37 +3,111 @@ import 'package:flutter/material.dart';
 class NumberPad extends StatelessWidget {
   final void Function(int) onNumber;
   final void Function() onErase;
+  final void Function() onTogglePencilMode;
   final Set<int>? disabledDigits;
+  final bool isPencilMode;
 
   const NumberPad({
     super.key,
     required this.onNumber,
     required this.onErase,
+    required this.onTogglePencilMode,
     this.disabledDigits,
+    this.isPencilMode = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+    return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        ...List.generate(
-          9,
-          (i) {
-            final digit = i + 1;
-            final isDisabled = disabledDigits?.contains(digit) ?? false;
-            return _PadButton(
-              label: '$digit',
-              onTap: () => onNumber(digit),
-              isDisabled: isDisabled,
-            );
-          },
+        // Toggle button row
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _ToggleButton(
+              isPencilMode: isPencilMode,
+              onTap: onTogglePencilMode,
+            ),
+          ],
         ),
-        _PadButton(
-          icon: Icons.backspace_outlined,
-          onTap: onErase,
+        const SizedBox(height: 8),
+        // Number buttons row
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            ...List.generate(
+              9,
+              (i) {
+                final digit = i + 1;
+                final isDisabled = disabledDigits?.contains(digit) ?? false;
+                return _PadButton(
+                  label: '$digit',
+                  onTap: () => onNumber(digit),
+                  isDisabled: isDisabled,
+                );
+              },
+            ),
+            _PadButton(
+              icon: Icons.backspace_outlined,
+              onTap: onErase,
+            ),
+          ],
         ),
       ],
+    );
+  }
+}
+
+class _ToggleButton extends StatelessWidget {
+  final bool isPencilMode;
+  final VoidCallback onTap;
+
+  const _ToggleButton({
+    required this.isPencilMode,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: isPencilMode
+                ? const Color(0xFF1A237E)
+                : const Color(0xFFE8EAF6),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: const Color(0xFF1A237E),
+              width: 1,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                isPencilMode ? Icons.edit : Icons.create,
+                size: 18,
+                color: isPencilMode ? Colors.white : const Color(0xFF1A237E),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                isPencilMode ? 'Pencil' : 'Pen',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: isPencilMode ? Colors.white : const Color(0xFF1A237E),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

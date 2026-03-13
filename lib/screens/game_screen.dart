@@ -45,6 +45,7 @@ class _GameScreenState extends State<GameScreen> {
   List<HintStep> _hintSteps = []; // Steps from strategy result
   bool _useHintSteps = false; // Whether to use hintSteps
   Map<(int, int), Set<int>> _candidates = {};
+  bool _isPencilMode = false;
   Set<int> _completedDigits = {};  // Track digits placed in all 9 blocks
   AppSettings _settings = const AppSettings();
 
@@ -194,34 +195,86 @@ class _GameScreenState extends State<GameScreen> {
     if (_isPaused || _isAnimating || _isCompleted) return;
     if (_selection.row < 0 || _selection.col < 0) return;
     if (_gameBoard.isGivenCell(_selection.row, _selection.col)) return;
-    if (_gameBoard.board[_selection.row][_selection.col] == num) return;
-    setState(() {
-      _fillCell(_selection.row, _selection.col, num);
-    });
+
+    if (_isPencilMode) {
+      // Pencil mode: toggle digit in candidates (only on empty cells)
+      if (_gameBoard.board[_selection.row][_selection.col] != 0) return;
+      setState(() {
+        _togglePencilMark(_selection.row, _selection.col, num);
+      });
+    } else {
+      // Pen mode: fill cell (existing behavior)
+      if (_gameBoard.board[_selection.row][_selection.col] == num) return;
+      setState(() {
+        _fillCell(_selection.row, _selection.col, num);
+      });
+    }
+  }
+
+  void _togglePencilMark(int row, int col, int digit) {
+    final key = (row, col);
+    final existing = _candidates[key] ?? <int>{};
+
+    if (existing.contains(digit)) {
+      // Remove the digit
+      if (existing.length == 1) {
+        _candidates.remove(key);
+      } else {
+        _candidates[key] = {...existing}..remove(digit);
+      }
+    } else {
+      // Add the digit
+      _candidates[key] = {...existing, digit};
+    }
   }
 
   void _onErase() {
     if (_isPaused || _isAnimating || _isCompleted) return;
     if (_selection.row < 0 || _selection.col < 0) return;
     if (_gameBoard.isGivenCell(_selection.row, _selection.col)) return;
-    if (_gameBoard.board[_selection.row][_selection.col] == 0) return;  // no-op guard
+
+    if (_isPencilMode) {
+      // Pencil mode: clear candidates for this cell
+      setState(() {
+        _candidates.remove((_selection.row, _selection.col));
+      });
+    } else {
+      // Pen mode: clear cell value (existing behavior)
+      if (_gameBoard.board[_selection.row][_selection.col] == 0) return;
+      setState(() {
+        _gameBoard.eraseCell(_selection.row, _selection.col);
+        _updateErrors();
+        _candidates = computeCandidates(_gameBoard.board);
+        _completedDigits = _calculateCompletedDigits();
+      });
+    }
+  }
+
+  void _onTogglePencilMode() {
+    if (_isPaused || _isAnimating || _isCompleted) return;
     setState(() {
-      _gameBoard.eraseCell(_selection.row, _selection.col);
-      _updateErrors();
-      _candidates = computeCandidates(_gameBoard.board);
-      _completedDigits = _calculateCompletedDigits();
+      _isPencilMode = !_isPencilMode;
     });
   }
 
   void _fillCell(int row, int col, int digit) {
     // Use GameBoard to set cell (includes undo stack and error update)
     _gameBoard.setCell(row, col, digit);
-    // Update candidates incrementally - only if candidates exist
-    if (_candidates.isEmpty) {
-      _candidates = computeCandidates(_gameBoard.board);
-    } else {
-      _candidates = _updateCandidatesAfterFill(_candidates, row, col, digit);
+
+    // Check if the filled digit is correct (matches solution)
+    final isCorrect = _gameBoard.board[row][col] == _gameBoard.solution[row][col];
+
+    // Only update candidates if the fill is correct
+    // This preserves candidates for undo restoration on incorrect fills
+    if (isCorrect) {
+      // Update candidates incrementally - only if candidates exist
+      if (_candidates.isEmpty) {
+        _candidates = computeCandidates(_gameBoard.board);
+      } else {
+        _candidates = _updateCandidatesAfterFill(_candidates, row, col, digit);
+      }
     }
+    // If incorrect, don't update candidates - they'll be restored on undo
 
     // Track completed digits
     _updateCompletedDigits(digit);
@@ -932,6 +985,8 @@ class _GameScreenState extends State<GameScreen> {
             hintMessage: _hintMessage,
             hintPhase: _hintPhase,
             isCompleted: _isCompleted,
+            isPencilMode: _isPencilMode,
+            onTogglePencilMode: _onTogglePencilMode,
             onNextPressed: _advanceHintPhase,
             onCellTap: _onCellTap,
             onNumberInput: _onNumberInput,
@@ -964,6 +1019,8 @@ class _GameScreenState extends State<GameScreen> {
             hintMessage: _hintMessage,
             hintPhase: _hintPhase,
             isCompleted: _isCompleted,
+            isPencilMode: _isPencilMode,
+            onTogglePencilMode: _onTogglePencilMode,
             onNextPressed: _advanceHintPhase,
             onCellTap: _onCellTap,
             onNumberInput: _onNumberInput,

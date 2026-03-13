@@ -22,6 +22,8 @@ class GameBoardContainer extends StatelessWidget {
 
   // NumberPad props
   final Set<int>? disabledDigits;
+  final bool isPencilMode;
+  final VoidCallback onTogglePencilMode;
 
   // HintBanner props
   final String? hintMessage;
@@ -54,6 +56,8 @@ class GameBoardContainer extends StatelessWidget {
     required this.onCellTap,
     required this.onNumberInput,
     required this.onErase,
+    required this.isPencilMode,
+    required this.onTogglePencilMode,
   });
 
   void _handleCellTap(int row, int col) {
@@ -118,6 +122,8 @@ class GameBoardContainer extends StatelessWidget {
             onNumber: _handleNumberInput,
             onErase: _handleErase,
             disabledDigits: disabledDigits,
+            isPencilMode: isPencilMode,
+            onTogglePencilMode: onTogglePencilMode,
           ),
         ),
         // Ad banner under NumberPad
