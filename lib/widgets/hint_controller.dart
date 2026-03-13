@@ -68,7 +68,7 @@ class HintController extends StatelessWidget {
     required void Function(StrategyType) onStrategySelected,
     bool showAdvancedHints = false,
   }) {
-    // Basic strategies: Hidden Single, Naked Pair, Hidden Pair
+    // Basic strategies: Hidden Single, Naked Pair, Hidden Pair, Naked Triple, Hidden Triple
     final basicStrategies = [
       _StrategyItem(
         'Hidden Single',
@@ -85,10 +85,6 @@ class HintController extends StatelessWidget {
         'Find two cells in a unit that are the only ones for two digits',
         StrategyType.hiddenPair,
       ),
-    ];
-
-    // Advanced strategies: Naked Triple, Hidden Triple, Naked Quad, Hidden Quad
-    final advancedStrategies = [
       _StrategyItem(
         'Naked Triple',
         'Find three cells in a unit with the same three candidates',
@@ -99,6 +95,10 @@ class HintController extends StatelessWidget {
         'Find three cells in a unit that are the only ones for three digits',
         StrategyType.hiddenTriple,
       ),
+    ];
+
+    // Advanced strategies: Naked Quad, Hidden Quad (controlled by showAdvancedHints switch)
+    final advancedStrategies = [
       _StrategyItem(
         'Naked Quad',
         'Find four cells in a unit with the same four candidates',

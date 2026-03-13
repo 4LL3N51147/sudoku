@@ -158,6 +158,8 @@ class _GameScreenState extends State<GameScreen> {
       _elapsedSeconds = 0;
     }
     // Keep the rest of the initialization:
+    _candidates = {};
+    _completedDigits = _calculateCompletedDigits();
     _selection.clear();
     _isPaused = false;
     _isAnimating = false;
