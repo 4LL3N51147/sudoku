@@ -14,6 +14,7 @@ void main() {
         isError: List.generate(9, (_) => List.filled(9, false)),
         undoStack: [],
         savedAt: DateTime.parse('2026-02-27T10:00:00Z'),
+        userPencilMarks: {},
       );
 
       final json = state.toJson();
@@ -35,6 +36,7 @@ void main() {
         'isGiven': List.generate(9, (_) => List.filled(9, false)),
         'isError': List.generate(9, (_) => List.filled(9, false)),
         'undoStack': <Map<String, dynamic>>[],
+        'userPencilMarks': <String, List<int>>{},
         'savedAt': '2026-02-27T10:00:00.000Z',
       };
 
@@ -55,6 +57,7 @@ void main() {
         'isGiven': List.generate(9, (_) => List.filled(9, false)),
         'isError': List.generate(9, (_) => List.filled(9, false)),
         'undoStack': [],
+        'userPencilMarks': <String, List<int>>{},
         'savedAt': '2026-02-27T10:00:00.000Z',
       };
 
