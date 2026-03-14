@@ -13,6 +13,7 @@ class GameState {
   final List<List<bool>> isGiven;
   final List<List<bool>> isError;
   final List<_Move> undoStack;
+  final Map<String, Set<int>> userPencilMarks;
   final DateTime savedAt;
 
   GameState({
@@ -24,6 +25,7 @@ class GameState {
     required this.isGiven,
     required this.isError,
     required this.undoStack,
+    required this.userPencilMarks,
     required this.savedAt,
   });
 
@@ -37,6 +39,7 @@ class GameState {
       'isGiven': _parseBoolBoard(isGiven),
       'isError': _parseBoolBoard(isError),
       'undoStack': _parseUndoStack(undoStack),
+      'userPencilMarks': _parsePencilMarks(userPencilMarks),
       'savedAt': savedAt.toIso8601String(),
     };
   }
@@ -62,6 +65,7 @@ class GameState {
       isGiven: _parseBoolBoardFromJson(json['isGiven'] as List),
       isError: _parseBoolBoardFromJson(json['isError'] as List),
       undoStack: _parseUndoStackFromJson(json['undoStack'] as List),
+      userPencilMarks: _parsePencilMarksFromJson(json['userPencilMarks'] as Map<String, dynamic>?),
       savedAt: DateTime.parse(json['savedAt'] as String),
     );
   }
@@ -130,6 +134,15 @@ class GameState {
               newValue: move['newValue'] as int,
             ))
         .toList();
+  }
+
+  static Map<String, Set<int>> _parsePencilMarks(Map<String, Set<int>> marks) {
+    return marks.map((key, value) => MapEntry(key, Set<int>.from(value)));
+  }
+
+  static Map<String, Set<int>> _parsePencilMarksFromJson(Map<String, dynamic>? json) {
+    if (json == null) return {};
+    return json.map((key, value) => MapEntry(key, (value as List).map((e) => e as int).toSet()));
   }
 
   String toJsonString() {
