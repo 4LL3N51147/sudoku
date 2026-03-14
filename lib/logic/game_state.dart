@@ -13,7 +13,7 @@ class GameState {
   final List<List<bool>> isGiven;
   final List<List<bool>> isError;
   final List<_Move> undoStack;
-  final Map<String, Set<int>> userPencilMarks;
+  final Map<(int, int), Set<int>> userPencilMarks;
   final DateTime savedAt;
 
   GameState({
@@ -136,13 +136,18 @@ class GameState {
         .toList();
   }
 
-  static Map<String, Set<int>> _parsePencilMarks(Map<String, Set<int>> marks) {
-    return marks.map((key, value) => MapEntry(key, Set<int>.from(value)));
+  static Map<String, Set<int>> _parsePencilMarks(Map<(int, int), Set<int>> marks) {
+    return marks.map((key, value) => MapEntry('${key.$1}-${key.$2}', Set<int>.from(value)));
   }
 
-  static Map<String, Set<int>> _parsePencilMarksFromJson(Map<String, dynamic>? json) {
+  static Map<(int, int), Set<int>> _parsePencilMarksFromJson(Map<String, dynamic>? json) {
     if (json == null) return {};
-    return json.map((key, value) => MapEntry(key, (value as List).map((e) => e as int).toSet()));
+    return json.map((key, value) {
+      final parts = key.split('-');
+      final row = int.parse(parts[0]);
+      final col = int.parse(parts[1]);
+      return MapEntry((row, col), (value as List).map((e) => e as int).toSet());
+    });
   }
 
   String toJsonString() {
