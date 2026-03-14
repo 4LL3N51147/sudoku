@@ -1,4 +1,11 @@
 import 'strategy_types.dart';
+import 'hidden_single_strategy.dart';
+import 'naked_pair_strategy.dart';
+import 'hidden_pair_strategy.dart';
+import 'naked_triple_strategy.dart';
+import 'hidden_triple_strategy.dart';
+import 'naked_quad_strategy.dart';
+import 'hidden_quad_strategy.dart';
 
 enum StrategyType {
   hiddenSingle,
@@ -107,4 +114,25 @@ class StrategyHighlight {
 abstract class Strategy {
   StrategyType get type;
   StrategyResult? find(List<List<int>> board, Map<(int, int), Set<int>> candidates);
+}
+
+class StrategyRegistry {
+  static final List<Strategy> _strategies = [
+    HiddenSingleStrategy(),
+    NakedPairStrategy(),
+    HiddenPairStrategy(),
+    NakedTripleStrategy(),
+    HiddenTripleStrategy(),
+    NakedQuadStrategy(),
+    HiddenQuadStrategy(),
+  ];
+
+  static List<Strategy> getAllStrategies() => _strategies;
+
+  static Strategy? getStrategy(StrategyType type) {
+    for (final strategy in _strategies) {
+      if (strategy.type == type) return strategy;
+    }
+    return null;
+  }
 }
