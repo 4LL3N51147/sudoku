@@ -908,6 +908,7 @@ class _GameScreenState extends State<GameScreen> {
       isError: _gameBoard.isErrorBoard,
       undoStack: _gameBoard.undoStack,
       savedAt: DateTime.now(),
+      userPencilMarks: _userPencilMarks,
     );
 
     final jsonString = state.toJsonString();
