@@ -1,4 +1,4 @@
-import '../strategy_solver.dart';
+import 'strategy_types.dart';
 
 enum StrategyType {
   hiddenSingle,

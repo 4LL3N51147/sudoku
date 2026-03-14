@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../logic/sudoku_generator.dart';
 import '../logic/strategy_solver.dart';
+import '../logic/strategy/naked_triple_strategy.dart';
 import '../logic/game_state.dart';
 import '../logic/game_board.dart';
 import '../logic/selection_model.dart';
@@ -587,7 +588,7 @@ class _GameScreenState extends State<GameScreen> {
       StrategyType.hiddenSingle => solver.findHiddenSingle(),
       StrategyType.nakedPair => solver.findNakedPair(),
       StrategyType.hiddenPair => solver.findHiddenPair(),
-      StrategyType.nakedTriple => solver.findNakedTriple(),
+      StrategyType.nakedTriple => NakedTripleStrategy().find(_gameBoard.board, _candidates),
       StrategyType.hiddenTriple => solver.findHiddenTriple(),
       StrategyType.nakedQuad => solver.findNakedQuad(),
       StrategyType.hiddenQuad => solver.findHiddenQuad(),
