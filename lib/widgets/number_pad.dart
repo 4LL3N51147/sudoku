@@ -18,41 +18,29 @@ class NumberPad extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
+    // Number buttons row with toggle
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        // Toggle button row
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _ToggleButton(
-              isPencilMode: isPencilMode,
-              onTap: onTogglePencilMode,
-            ),
-          ],
+        ...List.generate(
+          9,
+          (i) {
+            final digit = i + 1;
+            final isDisabled = disabledDigits?.contains(digit) ?? false;
+            return _PadButton(
+              label: '$digit',
+              onTap: () => onNumber(digit),
+              isDisabled: isDisabled,
+            );
+          },
         ),
-        const SizedBox(height: 8),
-        // Number buttons row
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            ...List.generate(
-              9,
-              (i) {
-                final digit = i + 1;
-                final isDisabled = disabledDigits?.contains(digit) ?? false;
-                return _PadButton(
-                  label: '$digit',
-                  onTap: () => onNumber(digit),
-                  isDisabled: isDisabled,
-                );
-              },
-            ),
-            _PadButton(
-              icon: Icons.backspace_outlined,
-              onTap: onErase,
-            ),
-          ],
+        _PadButton(
+          icon: Icons.backspace_outlined,
+          onTap: onErase,
+        ),
+        _ToggleButton(
+          isPencilMode: isPencilMode,
+          onTap: onTogglePencilMode,
         ),
       ],
     );
