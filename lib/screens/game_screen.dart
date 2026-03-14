@@ -274,6 +274,9 @@ class _GameScreenState extends State<GameScreen> {
       } else {
         _candidates = _updateCandidatesAfterFill(_candidates, row, col, digit);
       }
+
+      // Also update userPencilMarks for affected cells
+      _userPencilMarks = _updateCandidatesAfterFill(_userPencilMarks, row, col, digit);
     }
     // If incorrect, don't update candidates - they'll be restored on undo
 
