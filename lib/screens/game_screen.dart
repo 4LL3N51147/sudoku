@@ -360,6 +360,37 @@ class _GameScreenState extends State<GameScreen> {
     return updated;
   }
 
+  /// Apply elimination candidates to both candidates and user pencil marks.
+  /// Returns a map with updated candidates (pencil marks are also updated in place).
+  Map<(int, int), Set<int>> _applyEliminationCandidates(
+    Map<(int, int), Set<int>> candidates,
+    Map<(int, int), Set<int>> pencilMarks,
+    Map<(int, int), Set<int>> eliminationCandidates,
+  ) {
+    // Update candidates
+    final updated = Map<(int, int), Set<int>>.from(candidates);
+    for (final entry in eliminationCandidates.entries) {
+      final cell = entry.key;
+      final digits = entry.value;
+      if (updated.containsKey(cell)) {
+        updated[cell] = updated[cell]!.difference(digits);
+      }
+    }
+    // Also update pencil marks so eliminations show on board
+    final updatedPencil = Map<(int, int), Set<int>>.from(pencilMarks);
+    for (final entry in eliminationCandidates.entries) {
+      final cell = entry.key;
+      final digits = entry.value;
+      if (updatedPencil.containsKey(cell)) {
+        updatedPencil[cell] = updatedPencil[cell]!.difference(digits);
+      }
+    }
+    // Update pencil marks in place
+    pencilMarks.clear();
+    pencilMarks.addAll(updatedPencil);
+    return updated;
+  }
+
   Set<int> _calculateCompletedDigits() {
     final completed = <int>{};
     for (int digit = 1; digit <= 9; digit++) {
@@ -493,25 +524,11 @@ class _GameScreenState extends State<GameScreen> {
         }
         // Apply elimination candidates
         if (result.eliminationCandidates.isNotEmpty) {
-          final updated = Map<(int, int), Set<int>>.from(_candidates);
-          for (final entry in result.eliminationCandidates.entries) {
-            final cell = entry.key;
-            final digits = entry.value;
-            if (updated.containsKey(cell)) {
-              updated[cell] = updated[cell]!.difference(digits);
-            }
-          }
-          _candidates = updated;
-          // Also update userPencilMarks so eliminations show on board
-          final updatedPencil = Map<(int, int), Set<int>>.from(_userPencilMarks);
-          for (final entry in result.eliminationCandidates.entries) {
-            final cell = entry.key;
-            final digits = entry.value;
-            if (updatedPencil.containsKey(cell)) {
-              updatedPencil[cell] = updatedPencil[cell]!.difference(digits);
-            }
-          }
-          _userPencilMarks = updatedPencil;
+          _candidates = _applyEliminationCandidates(
+            _candidates,
+            _userPencilMarks,
+            result.eliminationCandidates,
+          );
         }
         _strategyHighlight = null;
         _hintMessage = null;
@@ -524,25 +541,11 @@ class _GameScreenState extends State<GameScreen> {
     } else {
       setState(() {
         if (result.eliminationCandidates.isNotEmpty) {
-          final updated = Map<(int, int), Set<int>>.from(_candidates);
-          for (final entry in result.eliminationCandidates.entries) {
-            final cell = entry.key;
-            final digits = entry.value;
-            if (updated.containsKey(cell)) {
-              updated[cell] = updated[cell]!.difference(digits);
-            }
-          }
-          _candidates = updated;
-          // Also update userPencilMarks so eliminations show on board
-          final updatedPencil = Map<(int, int), Set<int>>.from(_userPencilMarks);
-          for (final entry in result.eliminationCandidates.entries) {
-            final cell = entry.key;
-            final digits = entry.value;
-            if (updatedPencil.containsKey(cell)) {
-              updatedPencil[cell] = updatedPencil[cell]!.difference(digits);
-            }
-          }
-          _userPencilMarks = updatedPencil;
+          _candidates = _applyEliminationCandidates(
+            _candidates,
+            _userPencilMarks,
+            result.eliminationCandidates,
+          );
         }
         _strategyHighlight = null;
         _hintMessage = null;
@@ -637,25 +640,11 @@ class _GameScreenState extends State<GameScreen> {
       } else {
         // Elimination strategy: apply eliminations to candidates
         setState(() {
-          final updated = Map<(int, int), Set<int>>.from(_candidates);
-          for (final entry in result.eliminationCandidates.entries) {
-            final cell = entry.key;
-            final digits = entry.value;
-            if (updated.containsKey(cell)) {
-              updated[cell] = updated[cell]!.difference(digits);
-            }
-          }
-          _candidates = updated;
-          // Also update userPencilMarks so eliminations show on board
-          final updatedPencil = Map<(int, int), Set<int>>.from(_userPencilMarks);
-          for (final entry in result.eliminationCandidates.entries) {
-            final cell = entry.key;
-            final digits = entry.value;
-            if (updatedPencil.containsKey(cell)) {
-              updatedPencil[cell] = updatedPencil[cell]!.difference(digits);
-            }
-          }
-          _userPencilMarks = updatedPencil;
+          _candidates = _applyEliminationCandidates(
+            _candidates,
+            _userPencilMarks,
+            result.eliminationCandidates,
+          );
           _strategyHighlight = null;
           _hintMessage = null;
           _hintPhase = null;
