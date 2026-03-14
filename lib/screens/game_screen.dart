@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:web/web.dart' as web;
+import 'package:archive/archive.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../logic/sudoku_generator.dart';
@@ -925,23 +926,122 @@ class _GameScreenState extends State<GameScreen> {
 
     try {
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      // Encode the JSON string as a data URL for cross-platform compatibility
-      final encoded = Uri.encodeComponent(jsonString);
-      final dataUrl = 'data:application/json;charset=utf-8,$encoded';
+
+      // Create zip
+      final archive = Archive();
+
+      // Add .sudoku file
+      final sudokuBytes = Uint8List.fromList(jsonString.codeUnits);
+      archive.addFile(ArchiveFile(
+        'sudoku-${widget.difficulty.name}-$timestamp.sudoku',
+        sudokuBytes.length,
+        sudokuBytes,
+      ));
+
+      // Add .md file
+      final markdown = _generateMoveLogMarkdown();
+      final markdownBytes = Uint8List.fromList(markdown.codeUnits);
+      archive.addFile(ArchiveFile(
+        'sudoku-${widget.difficulty.name}-$timestamp.md',
+        markdownBytes.length,
+        markdownBytes,
+      ));
+
+      // Encode zip
+      final zipData = ZipEncoder().encode(archive);
+      if (zipData == null) throw Exception('Failed to encode zip');
+
+      // Download as zip
+      final zipBytes = Uint8List.fromList(zipData);
+      // ignore:: unnecessary_cast
+      final blob = web.Blob(zipBytes as dynamic);
+      final url = web.URL.createObjectURL(blob);
       final anchor = web.document.createElement('a') as web.HTMLAnchorElement
-        ..href = dataUrl
-        ..setAttribute('download', 'sudoku-${widget.difficulty.name}-$timestamp.sudoku');
+        ..href = url
+        ..setAttribute('download', 'sudoku-${widget.difficulty.name}-$timestamp.zip');
       anchor.click();
+      web.URL.revokeObjectURL(url);
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Game exported!')),
       );
     } catch (e) {
-      // Show error instead of misleading success
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Export failed: $e')),
       );
     }
+  }
+
+  String _generateMoveLogMarkdown() {
+    final buffer = StringBuffer();
+    buffer.writeln('# Sudoku Game Log');
+    buffer.writeln();
+    buffer.writeln('**Difficulty:** ${widget.difficulty.name}');
+    buffer.writeln('**Elapsed Time:** $_elapsedSeconds seconds');
+    buffer.writeln();
+
+    // Get initial puzzle from widget.initialState if available, else generate empty
+    final puzzle = widget.initialState?.board ?? List.generate(9, (_) => List.filled(9, 0));
+
+    // Show initial board
+    buffer.writeln('## Initial Board');
+    buffer.writeln();
+    buffer.writeln(_boardToMarkdown(puzzle, {}));
+    buffer.writeln();
+
+    // Replay moves from undoStack
+    final moves = _gameBoard.undoStack;
+    final currentBoard = puzzle.map((row) => List<int>.from(row)).toList();
+    final currentPencilMarks = <(int, int), Set<int>>{};
+
+    for (int i = 0; i < moves.length; i++) {
+      final move = moves[i];
+      // Apply move
+      currentBoard[move.row][move.col] = move.newValue;
+
+      buffer.writeln('## Move ${i + 1}');
+      buffer.writeln();
+      buffer.writeln('**Action:** Fill (${move.row},${move.col}) with ${move.newValue}');
+      buffer.writeln('**From:** ${move.oldValue} → ${move.newValue}');
+      buffer.writeln();
+      buffer.writeln('### Board After Move ${i + 1}');
+      buffer.writeln();
+      buffer.writeln(_boardToMarkdown(currentBoard, currentPencilMarks));
+      buffer.writeln();
+    }
+
+    // Show final board with current pencil marks
+    buffer.writeln('## Final Board');
+    buffer.writeln();
+    buffer.writeln(_boardToMarkdown(_gameBoard.board, _userPencilMarks));
+
+    return buffer.toString();
+  }
+
+  String _boardToMarkdown(List<List<int>> board, Map<(int, int), Set<int>> pencilMarks) {
+    final buffer = StringBuffer();
+    buffer.writeln('|   | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |');
+    buffer.writeln('|---|---|---|---|---|---|---|---|---|---|---|');
+
+    final rowLabels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'];
+    for (int r = 0; r < 9; r++) {
+      buffer.write('| $rowLabels[r] |');
+      for (int c = 0; c < 9; c++) {
+        final value = board[r][c];
+        final marks = pencilMarks[(r, c)] ?? {};
+        if (value == 0 && marks.isNotEmpty) {
+          buffer.write(' ${marks.toList()..sort()}|');
+        } else if (value == 0) {
+          buffer.write('   |');
+        } else if (marks.isNotEmpty) {
+          buffer.write(' $value(${marks.toList()..sort()})|');
+        } else {
+          buffer.write(' $value |');
+        }
+      }
+      buffer.writeln();
+    }
+    return buffer.toString();
   }
 
   String _difficultyLabel() {
