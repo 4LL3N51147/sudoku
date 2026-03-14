@@ -235,9 +235,9 @@ class _GameScreenState extends State<GameScreen> {
     if (_gameBoard.isGivenCell(_selection.row, _selection.col)) return;
 
     if (_isPencilMode) {
-      // Pencil mode: clear candidates for this cell
+      // Pencil mode: clear user pencil marks for this cell
       setState(() {
-        _candidates.remove((_selection.row, _selection.col));
+        _userPencilMarks.remove((_selection.row, _selection.col));
       });
     } else {
       // Pen mode: clear cell value (existing behavior)
