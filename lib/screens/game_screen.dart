@@ -44,7 +44,6 @@ class _GameScreenState extends State<GameScreen> {
   int? _hintPhase; // null = no hint, 0 = scan, 1 = elimination, 2 = target
   StrategyResult? _currentStrategyResult;
   List<HintStep> _hintSteps = []; // Steps from strategy result
-  bool _useHintSteps = false; // Whether to use hintSteps
   Map<(int, int), Set<int>> _candidates = {};
   Map<(int, int), Set<int>> _userPencilMarks = {};
   bool _isPencilMode = false;
@@ -444,281 +443,39 @@ class _GameScreenState extends State<GameScreen> {
     final strategy = _currentStrategyResult;
     if (strategy == null) return;
 
-    // Use hintSteps if available
-    if (strategy.hintSteps.isNotEmpty) {
-      _useHintSteps = true;
-      _hintSteps = strategy.hintSteps;
-    }
-    
+    // All strategies now provide hintSteps - always use them for animation
+    _hintSteps = strategy.hintSteps;
+
     _advanceHintPhaseStrategy(strategy);
   }
 
   void _advanceHintPhaseStrategy(StrategyResult result) {
-    // Use hintSteps if available
-    if (_useHintSteps && _hintSteps.isNotEmpty) {
-      // Check if there are more steps
-      final nextIndex = (_hintPhase ?? 0) + 1;
-      if (nextIndex < _hintSteps.length) {
-        setState(() {
-          _hintPhase = nextIndex;
-          final step = _hintSteps[nextIndex];
-          _hintMessage = step.message;
-          _strategyHighlight = StrategyHighlight(
-            phase: step.phase,
-            unitCells: step.unitCells,
-            patternCells: step.patternCells,
-            eliminatorCells: step.eliminatorCells,
-            patternDigits: step.patternDigits,
-            targetCell: step.targetCell,
-            unitType: step.unitType,
-            eliminationCandidates: step.eliminationCandidates,
-            eliminationRows: step.eliminationRows,
-            eliminationCols: step.eliminationCols,
-            eliminationBoxes: step.eliminationBoxes,
-            resultCells: step.resultCells,
-          );
-        });
-      } else {
-        // No more steps - finish the hint
-        _applyHintResult(result);
-      }
-      return;
-    }
-    
-    // Fall back to old behavior
-    // For Hidden Single, skip phase 1 - go from scan to elimination to target
-    final isHiddenSingle = result.type == StrategyType.hiddenSingle;
-    if (isHiddenSingle && _hintPhase == 1) {
-      // Skip phase 1 (pattern) and phase 2 (elimination) for Hidden Single
+    // Always use hintSteps for animation - all strategies now provide them
+    // Check if there are more steps
+    final nextIndex = (_hintPhase ?? 0) + 1;
+    if (nextIndex < _hintSteps.length) {
       setState(() {
-        _hintPhase = 3; // Go directly to target
-        final unitLabel = result.unitType != null
-            ? switch (result.unitType!) {
-                UnitType.row => 'row',
-                UnitType.column => 'column',
-                UnitType.box => 'box',
-              }
-            : 'board';
-        final digit = result.patternDigits.first;
-        _hintMessage = 'Found $digit in this $unitLabel!';
+        _hintPhase = nextIndex;
+        final step = _hintSteps[nextIndex];
+        _hintMessage = step.message;
         _strategyHighlight = StrategyHighlight(
-          phase: StrategyPhase.target,
-          unitCells: result.unitCells,
-          patternCells: result.patternCells,
-          patternDigits: result.patternDigits,
-          targetCell: result.targetCell,
-          unitType: result.unitType,
+          phase: step.phase,
+          unitCells: step.unitCells,
+          patternCells: step.patternCells,
+          eliminatorCells: step.eliminatorCells,
+          patternDigits: step.patternDigits,
+          targetCell: step.targetCell,
+          unitType: step.unitType,
+          eliminationCandidates: step.eliminationCandidates,
+          eliminationRows: step.eliminationRows,
+          eliminationCols: step.eliminationCols,
+          eliminationBoxes: step.eliminationBoxes,
+          resultCells: step.resultCells,
         );
       });
-      return;
-    }
-    
-    if (_hintPhase! < 3) {
-      // Advance to next phase
-      setState(() {
-        _hintPhase = _hintPhase! + 1;
-        final unitLabel = result.unitType != null
-            ? switch (result.unitType!) {
-                UnitType.row => 'row',
-                UnitType.column => 'column',
-                UnitType.box => 'box',
-              }
-            : 'board';
-
-        // Determine strategy type for messaging
-        final isNaked = result.type == StrategyType.nakedPair ||
-            result.type == StrategyType.nakedTriple ||
-            result.type == StrategyType.nakedQuad;
-        final isHidden = result.type == StrategyType.hiddenPair ||
-            result.type == StrategyType.hiddenTriple ||
-            result.type == StrategyType.hiddenQuad;
-        final digits = result.patternDigits;
-        final numCells = result.patternCells.length;
-
-        if (_hintPhase == 1) {
-          // Phase 1: Show the pattern - what was found
-          if (result.type == StrategyType.nakedPair) {
-            // Naked Pair: these 2 digits are locked in these 2 cells
-            _hintMessage = 'Naked Pair: $digits are locked in these 2 cells';
-          } else if (result.type == StrategyType.nakedTriple) {
-            // Naked Triple: these 3 digits are locked in these 3 cells
-            _hintMessage = 'Naked Triple: $digits are locked in these 3 cells';
-          } else if (result.type == StrategyType.nakedQuad) {
-            // Naked Quad: these 4 digits are locked in these 4 cells
-            _hintMessage = 'Naked Quad: $digits are locked in these 4 cells';
-          } else if (result.type == StrategyType.hiddenPair) {
-            // Hidden Pair: look for 2 digits that appear in exactly 2 cells - don't reveal which cells yet
-            _hintMessage = 'Looking for Hidden Pair: $digits in this $unitLabel';
-          } else if (result.type == StrategyType.hiddenTriple) {
-            // Hidden Triple: look for 3 digits that appear in exactly 3 cells - don't reveal which cells yet
-            _hintMessage = 'Looking for Hidden Triple: $digits in this $unitLabel';
-          } else if (result.type == StrategyType.hiddenQuad) {
-            // Hidden Quad: look for 4 digits that appear in exactly 4 cells - don't reveal which cells yet
-            _hintMessage = 'Looking for Hidden Quad: $digits in this $unitLabel';
-          } else {
-            _hintMessage = 'Found $digits in this $unitLabel';
-          }
-          // For hidden strategies, don't highlight specific cells in scan phase - 
-          // user can't know which cells until after elimination
-          // For naked strategies, show the pattern cells
-          final showPatternCells = isNaked;
-          _strategyHighlight = StrategyHighlight(
-            phase: StrategyPhase.scan,
-            unitCells: result.unitCells,
-            patternCells: showPatternCells ? result.patternCells : {},
-            patternDigits: result.patternDigits,
-            unitType: result.unitType,
-          );
-        } else if (_hintPhase == 2) {
-          // Phase 2: Show elimination - what to remove
-          final elimCount = result.eliminationCells.length;
-          if (isNaked) {
-            // Naked: remove these digits from OTHER cells in unit
-            _hintMessage = 'Remove $digits from $elimCount other cell${elimCount > 1 ? 's' : ''} in this $unitLabel';
-          } else if (isHidden) {
-            // Hidden: remove OTHER candidates from these $numCells cells
-            _hintMessage = 'Remove other candidates from these $numCells cells';
-          } else {
-            _hintMessage = '${result.patternDigits} can only go in ${result.patternCells.length} cell(s)!';
-          }
-          // Show elimination with zones
-          _strategyHighlight = StrategyHighlight(
-            phase: StrategyPhase.elimination,
-            unitCells: result.unitCells,
-            eliminatorCells: result.eliminationCells,
-            patternCells: result.patternCells,
-            patternDigits: result.patternDigits,
-            eliminationCandidates: result.eliminationCandidates,
-            eliminationRows: result.eliminationRows,
-            eliminationCols: result.eliminationCols,
-            eliminationBoxes: result.eliminationBoxes,
-            targetCell: result.targetCell,
-            unitType: result.unitType,
-          );
-        } else if (_hintPhase == 3) {
-          // Phase 3: Show target/result - cells that can now be filled
-          if (isNaked && result.resultCells.isNotEmpty) {
-            // Naked strategies: show cells that now have single candidates
-            final resultCount = result.resultCells.length;
-            _hintMessage = 'Now you can fill $resultCount cell${resultCount > 1 ? 's' : ''} with single candidates!';
-            // Highlight result cells in green
-            _strategyHighlight = StrategyHighlight(
-              phase: StrategyPhase.target,
-              unitCells: result.unitCells,
-              patternCells: result.patternCells,
-              resultCells: result.resultCells,
-              patternDigits: result.patternDigits,
-              targetCell: result.targetCell,
-              unitType: result.unitType,
-            );
-          } else if (isHidden) {
-            // Hidden strategies: highlight pattern cells as the result (digits are locked)
-            _hintMessage = 'These cells are now locked to $digits!';
-            // Highlight pattern cells in green as the result
-            _strategyHighlight = StrategyHighlight(
-              phase: StrategyPhase.target,
-              unitCells: result.unitCells,
-              patternCells: result.patternCells,
-              patternDigits: result.patternDigits,
-              targetCell: result.targetCell,
-              unitType: result.unitType,
-            );
-          } else if (result.targetCell != null) {
-            // Hidden Single: show the target cell
-            final digit = result.patternDigits.first;
-            _hintMessage = 'Now you can place $digit in this cell!';
-            _strategyHighlight = StrategyHighlight(
-              phase: StrategyPhase.target,
-              unitCells: result.unitCells,
-              patternCells: result.patternCells,
-              patternDigits: result.patternDigits,
-              targetCell: result.targetCell,
-              unitType: result.unitType,
-            );
-          } else {
-            // Fallback - skip to completion
-            _hintPhase = 4; // Will trigger completion in next check
-          }
-        }
-      });
-    } else if (_useHintSteps && (_hintPhase ?? 0) >= _hintSteps.length - 1) {
-      // All hintSteps completed - finish the hint
-      _applyHintResult(result);
     } else {
-      // Phase 2 complete - if there's a target cell, fill it
-      if (result.targetCell != null) {
-        final (row, col) = result.targetCell!;
-        // For Hidden Single, automatically fill the digit
-        // For other strategies, let the user fill manually
-        final bool shouldAutoFill = result.type == StrategyType.hiddenSingle;
-        setState(() {
-          if (shouldAutoFill) {
-            // Fill the cell automatically for Hidden Single
-            _gameBoard.setCell(row, col, result.patternDigits.first);
-            _updateErrors();
-            // Update candidates incrementally - preserve existing pencil marks
-            _candidates = _updateCandidatesAfterFill(_candidates, row, col, result.patternDigits.first);
-          }
-          // Apply elimination candidates to _candidates
-          if (result.eliminationCandidates.isNotEmpty) {
-            final updated = Map<(int, int), Set<int>>.from(_candidates);
-            for (final entry in result.eliminationCandidates.entries) {
-              final cell = entry.key;
-              final digits = entry.value;
-              if (updated.containsKey(cell)) {
-                updated[cell] = updated[cell]!.difference(digits);
-              }
-            }
-            _candidates = updated;
-            // Also update userPencilMarks so eliminations show on board
-            final updatedPencil = Map<(int, int), Set<int>>.from(_userPencilMarks);
-            for (final entry in result.eliminationCandidates.entries) {
-              final cell = entry.key;
-              final digits = entry.value;
-              if (updatedPencil.containsKey(cell)) {
-                updatedPencil[cell] = updatedPencil[cell]!.difference(digits);
-              }
-            }
-            _userPencilMarks = updatedPencil;
-          }
-          _strategyHighlight = null;
-          _hintMessage = null;
-          _hintPhase = null;
-          _currentStrategyResult = null;
-          _isAnimating = false;
-          _selection.select(row, col);
-        });
-      } else {
-        // Elimination only - apply eliminations to candidates
-        setState(() {
-          if (result.eliminationCandidates.isNotEmpty) {
-            final updated = Map<(int, int), Set<int>>.from(_candidates);
-            for (final entry in result.eliminationCandidates.entries) {
-              final cell = entry.key;
-              final digits = entry.value;
-              if (updated.containsKey(cell)) {
-                updated[cell] = updated[cell]!.difference(digits);
-              }
-            }
-            _candidates = updated;
-            // Also update userPencilMarks so eliminations show on board
-            final updatedPencil = Map<(int, int), Set<int>>.from(_userPencilMarks);
-            for (final entry in result.eliminationCandidates.entries) {
-              final cell = entry.key;
-              final digits = entry.value;
-              if (updatedPencil.containsKey(cell)) {
-                updatedPencil[cell] = updatedPencil[cell]!.difference(digits);
-              }
-            }
-            _userPencilMarks = updatedPencil;
-          }
-          _strategyHighlight = null;
-          _hintMessage = null;
-          _hintPhase = null;
-          _currentStrategyResult = null;
-          _isAnimating = false;
-        });
-      }
+      // No more steps - finish the hint
+      _applyHintResult(result);
     }
   }
 
@@ -761,7 +518,6 @@ class _GameScreenState extends State<GameScreen> {
         _hintPhase = null;
         _currentStrategyResult = null;
         _hintSteps = [];
-        _useHintSteps = false;
         _isAnimating = false;
         _selection.select(row, col);
       });
@@ -793,7 +549,6 @@ class _GameScreenState extends State<GameScreen> {
         _hintPhase = null;
         _currentStrategyResult = null;
         _hintSteps = [];
-        _useHintSteps = false;
         _isAnimating = false;
       });
     }
