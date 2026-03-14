@@ -670,6 +670,16 @@ class _GameScreenState extends State<GameScreen> {
               }
             }
             _candidates = updated;
+            // Also update userPencilMarks so eliminations show on board
+            final updatedPencil = Map<(int, int), Set<int>>.from(_userPencilMarks);
+            for (final entry in result.eliminationCandidates.entries) {
+              final cell = entry.key;
+              final digits = entry.value;
+              if (updatedPencil.containsKey(cell)) {
+                updatedPencil[cell] = updatedPencil[cell]!.difference(digits);
+              }
+            }
+            _userPencilMarks = updatedPencil;
           }
           _strategyHighlight = null;
           _hintMessage = null;
@@ -691,6 +701,16 @@ class _GameScreenState extends State<GameScreen> {
               }
             }
             _candidates = updated;
+            // Also update userPencilMarks so eliminations show on board
+            final updatedPencil = Map<(int, int), Set<int>>.from(_userPencilMarks);
+            for (final entry in result.eliminationCandidates.entries) {
+              final cell = entry.key;
+              final digits = entry.value;
+              if (updatedPencil.containsKey(cell)) {
+                updatedPencil[cell] = updatedPencil[cell]!.difference(digits);
+              }
+            }
+            _userPencilMarks = updatedPencil;
           }
           _strategyHighlight = null;
           _hintMessage = null;
@@ -725,6 +745,16 @@ class _GameScreenState extends State<GameScreen> {
             }
           }
           _candidates = updated;
+          // Also update userPencilMarks so eliminations show on board
+          final updatedPencil = Map<(int, int), Set<int>>.from(_userPencilMarks);
+          for (final entry in result.eliminationCandidates.entries) {
+            final cell = entry.key;
+            final digits = entry.value;
+            if (updatedPencil.containsKey(cell)) {
+              updatedPencil[cell] = updatedPencil[cell]!.difference(digits);
+            }
+          }
+          _userPencilMarks = updatedPencil;
         }
         _strategyHighlight = null;
         _hintMessage = null;
@@ -747,6 +777,16 @@ class _GameScreenState extends State<GameScreen> {
             }
           }
           _candidates = updated;
+          // Also update userPencilMarks so eliminations show on board
+          final updatedPencil = Map<(int, int), Set<int>>.from(_userPencilMarks);
+          for (final entry in result.eliminationCandidates.entries) {
+            final cell = entry.key;
+            final digits = entry.value;
+            if (updatedPencil.containsKey(cell)) {
+              updatedPencil[cell] = updatedPencil[cell]!.difference(digits);
+            }
+          }
+          _userPencilMarks = updatedPencil;
         }
         _strategyHighlight = null;
         _hintMessage = null;
@@ -851,6 +891,16 @@ class _GameScreenState extends State<GameScreen> {
             }
           }
           _candidates = updated;
+          // Also update userPencilMarks so eliminations show on board
+          final updatedPencil = Map<(int, int), Set<int>>.from(_userPencilMarks);
+          for (final entry in result.eliminationCandidates.entries) {
+            final cell = entry.key;
+            final digits = entry.value;
+            if (updatedPencil.containsKey(cell)) {
+              updatedPencil[cell] = updatedPencil[cell]!.difference(digits);
+            }
+          }
+          _userPencilMarks = updatedPencil;
           _strategyHighlight = null;
           _hintMessage = null;
           _hintPhase = null;

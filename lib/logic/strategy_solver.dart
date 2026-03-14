@@ -657,58 +657,18 @@ class StrategySolver {
                   }
                 }
               }
-
-              // Create hint steps for hidden pair
-              final unitLabel = switch (unitType) {
-                UnitType.row => 'row',
-                UnitType.column => 'column',
-                UnitType.box => 'box',
-              };
-              final pairDigits = {d1, d2};
-              final hiddenPairSteps = [
-                HintStep(
-                  phase: StrategyPhase.scan,
-                  message: 'Scanning this $unitLabel — looking for hidden pair',
-                  unitCells: unitCells,
-                  patternDigits: pairDigits,
-                  unitType: unitType,
-                ),
-                HintStep(
-                  phase: StrategyPhase.elimination,
-                  message: 'Hidden Pair: $pairDigits are locked in these 2 cells',
-                  unitCells: unitCells,
-                  patternCells: pairCells,
-                  patternDigits: pairDigits,
-                  unitType: unitType,
-                ),
-                HintStep(
-                  phase: StrategyPhase.elimination,
-                  message: 'Remove other candidates from these ${pairCells.length} cells',
-                  unitCells: unitCells,
-                  patternCells: pairCells,
-                  eliminatorCells: eliminationCells,
-                  patternDigits: pairDigits,
-                  eliminationCandidates: eliminationCandidates,
-                  eliminationRows: elimRows,
-                  eliminationCols: elimCols,
-                  eliminationBoxes: elimBoxes,
-                  unitType: unitType,
-                ),
-              ];
-
               return StrategyResult(
                 type: StrategyType.hiddenPair,
                 phase: StrategyPhase.elimination,
                 unitType: unitType,
                 unitCells: unitCells,
                 patternCells: pairCells,
-                patternDigits: pairDigits,
+                patternDigits: {d1, d2},
                 eliminationCells: eliminationCells,
                 eliminationCandidates: eliminationCandidates,
                 eliminationRows: elimRows,
                 eliminationCols: elimCols,
                 eliminationBoxes: elimBoxes,
-                hintSteps: hiddenPairSteps,
               );
             }
           }
@@ -801,52 +761,16 @@ class StrategySolver {
                 }
               }
 
-              // Create hint steps for naked triple
-              final unitLabel = switch (unitType) {
-                UnitType.row => 'row',
-                UnitType.column => 'column',
-                UnitType.box => 'box',
-              };
-              final tripleDigits = combinedCandidates;
-              final nakedTripleSteps = [
-                HintStep(
-                  phase: StrategyPhase.scan,
-                  message: 'Scanning this $unitLabel — looking for $tripleDigits',
-                  unitCells: unitCells,
-                  patternDigits: tripleDigits,
-                  unitType: unitType,
-                ),
-                HintStep(
-                  phase: StrategyPhase.elimination,
-                  message: 'Naked Triple: $tripleDigits are locked in these 3 cells',
-                  unitCells: unitCells,
-                  patternCells: triple.toSet(),
-                  patternDigits: tripleDigits,
-                  unitType: unitType,
-                ),
-                HintStep(
-                  phase: StrategyPhase.elimination,
-                  message: 'Remove $tripleDigits from ${eliminationCells.length} other cell${eliminationCells.length > 1 ? 's' : ''} in this $unitLabel',
-                  unitCells: unitCells,
-                  patternCells: triple.toSet(),
-                  eliminatorCells: eliminationCells,
-                  patternDigits: tripleDigits,
-                  eliminationCandidates: eliminationCandidates,
-                  unitType: unitType,
-                ),
-              ];
-
               return StrategyResult(
                 type: StrategyType.nakedTriple,
                 phase: StrategyPhase.elimination,
                 unitType: unitType,
                 unitCells: unitCells,
                 patternCells: triple.toSet(),
-                patternDigits: tripleDigits,
+                patternDigits: combinedCandidates,
                 eliminationCells: eliminationCells,
                 eliminationCandidates: eliminationCandidates,
                 resultCells: resultCells,
-                hintSteps: nakedTripleSteps,
               );
             }
           }
@@ -956,58 +880,18 @@ class StrategySolver {
                   }
                 }
               }
-
-              // Create hint steps for hidden triple
-              final unitLabel = switch (unitType) {
-                UnitType.row => 'row',
-                UnitType.column => 'column',
-                UnitType.box => 'box',
-              };
-              final tripleDigits = {d1, d2, d3};
-              final hiddenTripleSteps = [
-                HintStep(
-                  phase: StrategyPhase.scan,
-                  message: 'Scanning this $unitLabel — looking for hidden triple',
-                  unitCells: unitCells,
-                  patternDigits: tripleDigits,
-                  unitType: unitType,
-                ),
-                HintStep(
-                  phase: StrategyPhase.elimination,
-                  message: 'Hidden Triple: $tripleDigits are locked in these 3 cells',
-                  unitCells: unitCells,
-                  patternCells: tripleCells,
-                  patternDigits: tripleDigits,
-                  unitType: unitType,
-                ),
-                HintStep(
-                  phase: StrategyPhase.elimination,
-                  message: 'Remove other candidates from these ${tripleCells.length} cells',
-                  unitCells: unitCells,
-                  patternCells: tripleCells,
-                  eliminatorCells: eliminationCells,
-                  patternDigits: tripleDigits,
-                  eliminationCandidates: eliminationCandidates,
-                  eliminationRows: elimRows,
-                  eliminationCols: elimCols,
-                  eliminationBoxes: elimBoxes,
-                  unitType: unitType,
-                ),
-              ];
-
               return StrategyResult(
                 type: StrategyType.hiddenTriple,
                 phase: StrategyPhase.elimination,
                 unitType: unitType,
                 unitCells: unitCells,
                 patternCells: tripleCells,
-                patternDigits: tripleDigits,
+                patternDigits: {d1, d2, d3},
                 eliminationCells: eliminationCells,
                 eliminationCandidates: eliminationCandidates,
                 eliminationRows: elimRows,
                 eliminationCols: elimCols,
                 eliminationBoxes: elimBoxes,
-                hintSteps: hiddenTripleSteps,
               );
             }
           }
@@ -1106,52 +990,16 @@ class StrategySolver {
                   }
                 }
 
-                // Create hint steps for naked quad
-                final unitLabel = switch (unitType) {
-                  UnitType.row => 'row',
-                  UnitType.column => 'column',
-                  UnitType.box => 'box',
-                };
-                final quadDigits = combinedCandidates;
-                final nakedQuadSteps = [
-                  HintStep(
-                    phase: StrategyPhase.scan,
-                    message: 'Scanning this $unitLabel — looking for $quadDigits',
-                    unitCells: unitCells,
-                    patternDigits: quadDigits,
-                    unitType: unitType,
-                  ),
-                  HintStep(
-                    phase: StrategyPhase.elimination,
-                    message: 'Naked Quad: $quadDigits are locked in these 4 cells',
-                    unitCells: unitCells,
-                    patternCells: quad.toSet(),
-                    patternDigits: quadDigits,
-                    unitType: unitType,
-                  ),
-                  HintStep(
-                    phase: StrategyPhase.elimination,
-                    message: 'Remove $quadDigits from ${eliminationCells.length} other cell${eliminationCells.length > 1 ? 's' : ''} in this $unitLabel',
-                    unitCells: unitCells,
-                    patternCells: quad.toSet(),
-                    eliminatorCells: eliminationCells,
-                    patternDigits: quadDigits,
-                    eliminationCandidates: eliminationCandidates,
-                    unitType: unitType,
-                  ),
-                ];
-
                 return StrategyResult(
                   type: StrategyType.nakedQuad,
                   phase: StrategyPhase.elimination,
                   unitType: unitType,
                   unitCells: unitCells,
                   patternCells: quad.toSet(),
-                  patternDigits: quadDigits,
+                  patternDigits: combinedCandidates,
                   eliminationCells: eliminationCells,
                   eliminationCandidates: eliminationCandidates,
                   resultCells: resultCells,
-                  hintSteps: nakedQuadSteps,
                 );
               }
             }
@@ -1267,58 +1115,18 @@ class StrategySolver {
                     }
                   }
                 }
-
-                // Create hint steps for hidden quad
-                final unitLabel = switch (unitType) {
-                  UnitType.row => 'row',
-                  UnitType.column => 'column',
-                  UnitType.box => 'box',
-                };
-                final quadDigits = {d1, d2, d3, d4};
-                final hiddenQuadSteps = [
-                  HintStep(
-                    phase: StrategyPhase.scan,
-                    message: 'Scanning this $unitLabel — looking for hidden quad',
-                    unitCells: unitCells,
-                    patternDigits: quadDigits,
-                    unitType: unitType,
-                  ),
-                  HintStep(
-                    phase: StrategyPhase.elimination,
-                    message: 'Hidden Quad: $quadDigits are locked in these 4 cells',
-                    unitCells: unitCells,
-                    patternCells: quadCells,
-                    patternDigits: quadDigits,
-                    unitType: unitType,
-                  ),
-                  HintStep(
-                    phase: StrategyPhase.elimination,
-                    message: 'Remove other candidates from these ${quadCells.length} cells',
-                    unitCells: unitCells,
-                    patternCells: quadCells,
-                    eliminatorCells: eliminationCells,
-                    patternDigits: quadDigits,
-                    eliminationCandidates: eliminationCandidates,
-                    eliminationRows: elimRows,
-                    eliminationCols: elimCols,
-                    eliminationBoxes: elimBoxes,
-                    unitType: unitType,
-                  ),
-                ];
-
                 return StrategyResult(
                   type: StrategyType.hiddenQuad,
                   phase: StrategyPhase.elimination,
                   unitType: unitType,
                   unitCells: unitCells,
                   patternCells: quadCells,
-                  patternDigits: quadDigits,
+                  patternDigits: {d1, d2, d3, d4},
                   eliminationCells: eliminationCells,
                   eliminationCandidates: eliminationCandidates,
                   eliminationRows: elimRows,
                   eliminationCols: elimCols,
                   eliminationBoxes: elimBoxes,
-                  hintSteps: hiddenQuadSteps,
                 );
               }
             }
