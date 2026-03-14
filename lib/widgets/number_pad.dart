@@ -62,37 +62,22 @@ class _ToggleButton extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(10),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          width: 34,
+          height: 50,
           decoration: BoxDecoration(
             color: isPencilMode
                 ? const Color(0xFF1A237E)
                 : const Color(0xFFE8EAF6),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: const Color(0xFF1A237E),
-              width: 1,
-            ),
+            borderRadius: BorderRadius.circular(10),
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                isPencilMode ? Icons.edit : Icons.create,
-                size: 18,
-                color: isPencilMode ? Colors.white : const Color(0xFF1A237E),
-              ),
-              const SizedBox(width: 6),
-              Text(
-                isPencilMode ? 'Pencil' : 'Pen',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: isPencilMode ? Colors.white : const Color(0xFF1A237E),
-                ),
-              ),
-            ],
+          child: Center(
+            child: Icon(
+              isPencilMode ? Icons.create : Icons.edit,
+              size: 20,
+              color: isPencilMode ? Colors.white : const Color(0xFF1A237E),
+            ),
           ),
         ),
       ),
