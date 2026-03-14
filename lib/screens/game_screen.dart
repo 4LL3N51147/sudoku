@@ -45,6 +45,7 @@ class _GameScreenState extends State<GameScreen> {
   List<HintStep> _hintSteps = []; // Steps from strategy result
   bool _useHintSteps = false; // Whether to use hintSteps
   Map<(int, int), Set<int>> _candidates = {};
+  Map<(int, int), Set<int>> _userPencilMarks = {};
   bool _isPencilMode = false;
   Set<int> _completedDigits = {};  // Track digits placed in all 9 blocks
   AppSettings _settings = const AppSettings();
