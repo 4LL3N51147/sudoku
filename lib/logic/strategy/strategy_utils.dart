@@ -1,6 +1,3 @@
-import '../strategy_solver.dart';
-import 'strategy.dart';
-
 /// Returns the box index (0-8) for a given row and column.
 int getBoxIndex(int row, int col) => (row ~/ 3) * 3 + (col ~/ 3);
 
