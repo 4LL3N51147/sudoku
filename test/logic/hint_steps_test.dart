@@ -29,19 +29,19 @@ void main() {
 
       // Should have hintSteps with 3 entries
       expect(result.hintSteps, isNotNull);
-      expect(result.hintSteps!.length, 3);
+      expect(result.hintSteps.length, 3);
 
       // Step 1: Scan - should highlight unit
-      expect(result.hintSteps![0].phase, StrategyPhase.scan);
-      expect(result.hintSteps![0].unitCells, isNotEmpty);
+      expect(result.hintSteps[0].phase, StrategyPhase.scan);
+      expect(result.hintSteps[0].unitCells, isNotEmpty);
 
       // Step 2: Elimination - should show elimination zones
-      expect(result.hintSteps![1].phase, StrategyPhase.elimination);
-      expect(result.hintSteps![1].message, isNotNull);
+      expect(result.hintSteps[1].phase, StrategyPhase.elimination);
+      expect(result.hintSteps[1].message, isNotNull);
 
       // Step 3: Target - should show target cell
-      expect(result.hintSteps![2].phase, StrategyPhase.target);
-      expect(result.hintSteps![2].targetCell, isNotNull);
+      expect(result.hintSteps[2].phase, StrategyPhase.target);
+      expect(result.hintSteps[2].targetCell, isNotNull);
     });
 
     test('naked pair should have scan -> pattern -> elimination -> target steps', () {
@@ -65,7 +65,7 @@ void main() {
       if (result != null) {
         expect(result.hintSteps, isNotNull);
         // Naked pair should have at least 3 steps
-        expect(result.hintSteps!.length, greaterThanOrEqualTo(3));
+        expect(result.hintSteps.length, greaterThanOrEqualTo(3));
       }
     });
   });
