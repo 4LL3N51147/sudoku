@@ -134,9 +134,10 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _newGame() {
+    GameState? state;
     if (widget.initialState != null) {
       // Load from imported state
-      final state = widget.initialState!;
+      state = widget.initialState!;
       _gameBoard = GameBoard(
         puzzle: state.board,
         solution: state.solution,
@@ -149,11 +150,6 @@ class _GameScreenState extends State<GameScreen> {
           }
         }
       }
-      // Restore user pencil marks
-      if (state.userPencilMarks.isNotEmpty) {
-        _userPencilMarks = Map.from(state.userPencilMarks);
-      }
-      _elapsedSeconds = state.elapsedSeconds;
     } else {
       // Generate new game
       final result = SudokuGenerator.generate(widget.difficulty);
@@ -161,7 +157,6 @@ class _GameScreenState extends State<GameScreen> {
         puzzle: result.puzzle,
         solution: result.solution,
       );
-      _elapsedSeconds = 0;
     }
     // Keep the rest of the initialization:
     _candidates = {};
@@ -174,6 +169,17 @@ class _GameScreenState extends State<GameScreen> {
     _strategyHighlight = null;
     _hintMessage = null;
     _hintPhase = null;
+
+    // Restore user pencil marks and elapsed seconds (after initialization)
+    if (state != null && state.userPencilMarks.isNotEmpty) {
+      _userPencilMarks = Map.from(state.userPencilMarks);
+    }
+    if (state != null) {
+      _elapsedSeconds = state.elapsedSeconds;
+    } else {
+      _elapsedSeconds = 0;
+    }
+
     _startTimer();
   }
 
