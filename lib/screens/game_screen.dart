@@ -214,18 +214,18 @@ class _GameScreenState extends State<GameScreen> {
 
   void _togglePencilMark(int row, int col, int digit) {
     final key = (row, col);
-    final existing = _candidates[key] ?? <int>{};
+    final existing = _userPencilMarks[key] ?? <int>{};
 
     if (existing.contains(digit)) {
       // Remove the digit
       if (existing.length == 1) {
-        _candidates.remove(key);
+        _userPencilMarks.remove(key);
       } else {
-        _candidates[key] = {...existing}..remove(digit);
+        _userPencilMarks[key] = {...existing}..remove(digit);
       }
     } else {
       // Add the digit
-      _candidates[key] = {...existing, digit};
+      _userPencilMarks[key] = {...existing, digit};
     }
   }
 
