@@ -761,6 +761,8 @@ class _GameScreenState extends State<GameScreen> {
         if (_candidates.isEmpty) {
           _candidates = computeCandidates(_gameBoard.board);
         }
+        // Copy candidates to userPencilMarks for display
+        _userPencilMarks = Map.from(_candidates);
       });
     }
 
