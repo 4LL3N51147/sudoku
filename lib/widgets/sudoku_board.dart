@@ -269,8 +269,8 @@ class SudokuBoard extends StatelessWidget {
     final isMatching = hasCandidate && (matchingCandidates?.contains(digit) ?? false);
 
     return SizedBox(
-      width: 25,
-      height: 25,
+      width: 20,
+      height: 20,
       child: Center(
         child: isEliminated
             ? Stack(
