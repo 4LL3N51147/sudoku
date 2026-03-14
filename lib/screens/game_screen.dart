@@ -161,6 +161,7 @@ class _GameScreenState extends State<GameScreen> {
     }
     // Keep the rest of the initialization:
     _candidates = {};
+    _userPencilMarks = {};
     _completedDigits = _calculateCompletedDigits();
     _selection.clear();
     _isPaused = false;
