@@ -149,6 +149,10 @@ class _GameScreenState extends State<GameScreen> {
           }
         }
       }
+      // Restore user pencil marks
+      if (state.userPencilMarks.isNotEmpty) {
+        _userPencilMarks = Map.from(state.userPencilMarks);
+      }
       _elapsedSeconds = state.elapsedSeconds;
     } else {
       // Generate new game
