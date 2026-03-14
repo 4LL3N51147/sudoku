@@ -115,7 +115,9 @@ class _GameScreenState extends State<GameScreen> {
 
     // Ctrl+S: Export
     if (isCtrl && key == LogicalKeyboardKey.keyS) {
-      _exportGame();
+      if (!_isPaused && !_isAnimating && !_isCompleted) {
+        _exportGame();
+      }
       return true;
     }
 
